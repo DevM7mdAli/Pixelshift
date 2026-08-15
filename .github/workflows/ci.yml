@@ -98,13 +98,14 @@ jobs:
       # request that bumps every affected package.json and writes CHANGELOGs.
       # Once that pull request merges there are no changesets left, so the same
       # step publishes to npm and tags the release instead.
+      # commit, and renaming these inputs (version -> version-script, etc.).
       - name: Version or publish
-        uses: changesets/action@v2
+        uses: changesets/action@v1
         with:
-          version-script: pnpm changeset:version
-          publish-script: pnpm changeset:publish
-          commit-message: "chore(release): version packages"
-          pr-title: "chore(release): version packages"
+          version: pnpm changeset:version
+          publish: pnpm changeset:publish
+          commit: "chore(release): version packages"
+          title: "chore(release): version packages"
           github-token: ${{ secrets.RELEASE_TOKEN || github.token }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
