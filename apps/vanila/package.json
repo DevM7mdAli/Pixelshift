@@ -1,0 +1,21 @@
+{
+  "name": "vanila",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "pixelshift-web-core": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "^28.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6",
+    "vitest": "^4.0.18"
+  }
+}

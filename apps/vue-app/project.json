@@ -1,0 +1,22 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "vue-app",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "vite build", "cwd": "apps/vue-app" }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": { "command": "vite", "cwd": "apps/vue-app" }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "command": "vue-tsc --noEmit", "cwd": "apps/vue-app" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "vitest run", "cwd": "apps/vue-app" }
+    }
+  }
+}

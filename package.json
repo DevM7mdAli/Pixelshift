@@ -1,38 +1,72 @@
 {
-  "name": "monorepo-starter-template",
+  "name": "pixelshift",
   "version": "1.0.0",
-  "private": "true",
-  "description": "",
+  "private": true,
+  "description": "Local-first browser image conversion for every framework.",
   "engines": {
-    "node": ">=22.x",
-    "pnpm": "10.x"
+    "node": ">=24.x",
+    "pnpm": ">=10.x"
   },
   "main": "index.js",
   "scripts": {
-    "build": "turbo build",
-    "dev": "turbo dev",
-    "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "build": "nx run-many -t build",
+    "dev": "nx run-many -t dev --projects=vanila,react-app,angular-app,vue-app,docs",
+    "dev:vanila": "nx dev vanila",
+    "dev:react": "nx dev react-app",
+    "dev:angular": "nx dev angular-app",
+    "dev:vue": "nx dev vue-app",
+    "dev:docs": "nx dev docs",
+    "test": "nx run-many -t test",
+    "typecheck": "nx run-many -t typecheck",
+    "check:bundle": "node tooling/scripts/check-bundle.mjs",
+    "fix:tailwind": "node tooling/scripts/fix-tailwind-classes.mjs",
+    "check:tailwind": "node tooling/scripts/fix-tailwind-classes.mjs --check",
+    "format": "prettier --write \"**/*.{js,mjs,ts,tsx,vue,html,css,md,json}\"",
+    "format:check": "prettier --check \"**/*.{js,mjs,ts,tsx,vue,html,css,md,json}\"",
+    "changeset": "changeset",
+    "changeset:version": "changeset version && pnpm install --lockfile-only && prettier --write \"**/CHANGELOG.md\" \"**/package.json\"",
+    "changeset:publish": "pnpm build && changeset publish"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,css,md}": [
+    "*.{js,mjs,jsx,ts,tsx,vue,html,css,md,json}": [
       "prettier --write"
     ]
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "pixelshift",
+    "image converter",
+    "image conversion",
+    "image compression",
+    "image optimization",
+    "web component",
+    "lit",
+    "react",
+    "angular",
+    "vue",
+    "browser",
+    "client-side"
+  ],
+  "author": "Mohammed Alajmi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevM7mdAli/Pixelshift.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DevM7mdAli/Pixelshift/issues"
+  },
+  "homepage": "https://github.com/DevM7mdAli/Pixelshift#readme",
   "packageManager": "pnpm@10.0.0",
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
+    "nx": "^23.1.1",
     "prettier": "3.7.3",
-    "turbo": "^2.6.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6",
+    "vite-plugin-dts": "^5.0.3"
   }
 }

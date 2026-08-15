@@ -1,0 +1,49 @@
+---
+title: Getting started
+description: Install the React adapter and convert your first image.
+icon: Rocket
+---
+
+## Requirements
+
+Pixelshift needs a modern browser with custom elements, canvas, `Blob`, and either `createImageBitmap` or image decoding support.
+
+## Install
+
+For React:
+
+```bash
+pnpm add pixelshift-react
+```
+
+Render the typed component in your application:
+
+```tsx
+import { ImageConverter, type ConversionResult } from "pixelshift-react";
+
+function handleComplete(event: CustomEvent<ConversionResult[]>) {
+  console.log(event.detail);
+}
+
+export function Upload() {
+  return (
+    <ImageConverter
+      format="webp"
+      quality={0.85}
+      maxWidth={2400}
+      maxHeight={2400}
+      multiple
+      onConversionComplete={handleComplete}
+      onConversionError={(event) => console.error(event.detail)}
+    />
+  );
+}
+```
+
+Each result contains the converted `Blob`, downloadable `File`, dimensions, MIME types, byte sizes, and conversion duration.
+
+## Browser lifecycle
+
+Pixelshift can be imported by server-rendered applications, but conversion requires browser APIs. Render and call the component from client-side code after it has mounted.
+
+See [Framework adapters](/docs/frameworks) for complete React, Angular, and Vue examples. Repository contributors can continue with [Development](/docs/development).

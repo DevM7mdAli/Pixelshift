@@ -1,0 +1,35 @@
+---
+title: Development
+description: Run, verify, and contribute to the Pixelshift monorepo.
+icon: Wrench
+---
+
+This page is for contributors working from the Pixelshift repository. Library consumers do not need these commands.
+
+## Requirements
+
+- Node.js 24 or newer
+- pnpm 10
+
+## Install and run
+
+From the repository root:
+
+```bash
+pnpm install
+pnpm dev:docs
+```
+
+The docs application starts at `http://localhost:3000`. Run a specific integration application with `pnpm dev:vanila`, `pnpm dev:react`, `pnpm dev:angular`, or `pnpm dev:vue`.
+
+## Verify changes
+
+```bash
+pnpm format:check
+pnpm build
+pnpm typecheck
+pnpm test
+pnpm check:bundle
+```
+
+Nx caches project outputs, so unchanged packages are reused across commands. Run `pnpm check:bundle` after building when a publishable package or its dependency graph changes.

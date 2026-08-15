@@ -1,0 +1,11 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  role="img"
+  aria-labelledby="title"
+>
+  <title id="title">Pixelshift</title>
+  <path fill="#151614" d="M4 4h44l12 12v44H4V4Z" />
+  <path fill="#caff45" d="M14 14h36v8H22v8h28v20H14v-8h28v-4H14V14Z" />
+  <path fill="#ff6838" d="M42 14h8v8h-8zM14 42h8v8h-8z" />
+</svg>

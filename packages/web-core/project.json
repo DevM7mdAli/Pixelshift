@@ -1,0 +1,34 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "pixelshift-web-core",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "tailwind -i ./CSS/tailwindlib.css -o ./CSS/tailwind.css --minify",
+          "twlit --output ./CSS/twlit.ts --input ./CSS/tailwind.css",
+          "vite build"
+        ],
+        "cwd": "packages/web-core",
+        "parallel": false
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "tsc -p tsconfig.json --noEmit",
+        "cwd": "packages/web-core"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "vitest run",
+        "cwd": "packages/web-core"
+      }
+    }
+  }
+}

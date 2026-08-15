@@ -1,3 +1,10 @@
 # Ignore artifacts:
 build
 coverage
+dist
+.angular
+.nx
+.next
+pnpm-lock.yaml
+packages/web-core/CSS/tailwind.css
+packages/web-core/CSS/twlit.ts

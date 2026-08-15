@@ -1,0 +1,76 @@
+{
+  "name": "pixelshift-web-core",
+  "version": "0.1.0",
+  "description": "Pixelshift's accessible Lit image converter web component.",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./define": {
+      "types": "./dist/define.d.ts",
+      "default": "./dist/define.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": [
+    "./dist/define.js"
+  ],
+  "scripts": {
+    "build:css": "tailwind -i ./CSS/tailwindlib.css -o ./CSS/tailwind.css --minify",
+    "build:twlit": "twlit --output ./CSS/twlit.ts --input ./CSS/tailwind.css",
+    "watch:css": "tailwind -i ./CSS/tailwindlib.css -o ./CSS/tailwind.css --watch",
+    "watch:twlit": "twlit --output ./CSS/twlit.ts --input ./CSS/tailwind.css --watch",
+    "styles": "pnpm run build:css && pnpm run build:twlit",
+    "build": "pnpm run styles && vite build",
+    "typecheck": "pnpm run styles && tsc -p tsconfig.json --noEmit",
+    "test": "pnpm run styles && vitest run"
+  },
+  "dependencies": {
+    "pixelshift-core": "workspace:*",
+    "lit": "^3.3.3"
+  },
+  "keywords": [
+    "pixelshift",
+    "image converter",
+    "image conversion",
+    "web component",
+    "custom element",
+    "lit",
+    "image upload",
+    "image resize",
+    "webp",
+    "jpeg",
+    "png",
+    "browser"
+  ],
+  "devDependencies": {
+    "jsdom": "^28.0.0",
+    "tailwindcss": "^3.4.17",
+    "twlitme": "^1.0.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6",
+    "vite-plugin-dts": "^5.0.3",
+    "vitest": "^4.0.18"
+  },
+  "license": "MIT",
+  "author": "Mohammed Alajmi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevM7mdAli/Pixelshift.git",
+    "directory": "packages/web-core"
+  },
+  "bugs": {
+    "url": "https://github.com/DevM7mdAli/Pixelshift/issues"
+  },
+  "homepage": "https://github.com/DevM7mdAli/Pixelshift/tree/main/packages/web-core#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}

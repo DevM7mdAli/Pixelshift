@@ -1,0 +1,92 @@
+---
+title: Web component
+description: Configure the Lit custom element with attributes, properties, events, and methods.
+icon: Box
+---
+
+`<pixelshift-image-converter>` is the canonical UI. Every framework wrapper consumes this same namespaced element.
+
+## Install and register
+
+```bash
+pnpm add pixelshift-web-core
+```
+
+Import the registration entry once in your browser application:
+
+```ts
+import "pixelshift-web-core/define";
+```
+
+The element is then available in HTML:
+
+```html
+<pixelshift-image-converter
+  format="webp"
+  quality="0.85"
+  max-width="2400"
+  max-height="2400"
+  multiple
+></pixelshift-image-converter>
+```
+
+## Properties
+
+| Property    | Attribute    | Default  | Purpose                                   |
+| ----------- | ------------ | -------- | ----------------------------------------- |
+| `format`    | `format`     | `"webp"` | Output format: `png`, `jpeg`, or `webp`   |
+| `quality`   | `quality`    | `0.85`   | JPEG/WebP encoder quality from `0` to `1` |
+| `maxWidth`  | `max-width`  | unset    | Maximum output width in pixels            |
+| `maxHeight` | `max-height` | unset    | Maximum output height in pixels           |
+| `multiple`  | `multiple`   | `false`  | Permit batch selection                    |
+| `disabled`  | `disabled`   | `false`  | Disable user interaction                  |
+
+## Events
+
+All events bubble and cross the shadow-DOM boundary.
+
+| Event                 | Detail               |
+| --------------------- | -------------------- |
+| `files-selected`      | `File[]`             |
+| `conversion-start`    | none                 |
+| `conversion-complete` | `ConversionResult[]` |
+| `conversion-error`    | the thrown error     |
+
+```ts
+import type { ImageConverterElement } from "pixelshift-web-core";
+
+const converter = document.querySelector<ImageConverterElement>(
+  "pixelshift-image-converter",
+);
+
+converter?.addEventListener("files-selected", (event) => {
+  const files = (event as CustomEvent<File[]>).detail;
+  console.log(`${files.length} files selected`);
+});
+```
+
+## Methods
+
+Call `convert()` to start conversion programmatically. It resolves with all conversion results, or with an empty array when there are no files, the element is disabled, or conversion fails. Failures are also reported through `conversion-error`.
+
+Call `reset()` to clear the current files, results, previews, and displayed error.
+
+```ts
+if (converter) {
+  const results = await converter.convert();
+  console.log(results);
+  converter.reset();
+}
+```
+
+## Manual registration
+
+The package root does not register the custom element by itself. Import `defineImageConverter()` when you want to choose when registration happens:
+
+```ts
+import { defineImageConverter } from "pixelshift-web-core";
+
+defineImageConverter();
+```
+
+The registration function is idempotent and will not redefine an existing element.

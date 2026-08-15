@@ -1,0 +1,123 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+:root {
+  --pixelshift-ink: #151614;
+  --pixelshift-paper: #f2f0e8;
+  --pixelshift-paper-bright: #fbfaf5;
+  --pixelshift-board-surface: #f7f5ed;
+  --pixelshift-surface: #f8f6ed;
+  --pixelshift-canvas: #e6e3d8;
+  --pixelshift-muted: #555750;
+  --pixelshift-caption: #686a63;
+  --pixelshift-subtle: #72746d;
+  --pixelshift-line: rgba(21, 22, 20, 0.18);
+  --pixelshift-page-grid: rgba(21, 22, 20, 0.035);
+  --pixelshift-canvas-grid: rgba(21, 22, 20, 0.05);
+  --pixelshift-board-grid: rgba(255, 255, 255, 0.3);
+  --pixelshift-lime: #caff45;
+  --pixelshift-orange: #ff6838;
+  --pixelshift-success: #39a95a;
+
+  /*
+   * Theme-invariant pair: some elements are a fixed two-tone graphic unit
+   * (the hero "architecture" card, feature cards on a lime/ink fill, code
+   * samples, buttons on lime) rather than page chrome. --pixelshift-ink and
+   * --pixelshift-board-surface/-surface flip with the theme because they
+   * double as body text and page surfaces; these two never do, so those
+   * fixed spots keep working without a values-only .dark override forcing
+   * light-on-lime or light-on-light onto them. Not redefined under .dark on
+   * purpose — same value in both themes.
+   */
+  --pixelshift-mark: #151614;
+  --pixelshift-mark-inverse: #f7f5ed;
+
+  --pixelshift-font-sans: "Helvetica Neue", Arial, sans-serif;
+  --pixelshift-font-serif: Georgia, "Times New Roman", serif;
+  --pixelshift-font-mono: "SFMono-Regular", Consolas, monospace;
+
+  /*
+   * fumadocs' own theme tokens (--color-fd-*, see default-colors.css),
+   * remapped so the /docs UI chrome (nav, sidebar, search, cards, borders)
+   * uses the same brand palette as the landing page instead of its stock
+   * neutral gray. Accent tokens use a dedicated dark/light pair rather than
+   * the fixed brand orange directly, matching the pattern fumadocs' own
+   * colored presets (ocean.css, ruby.css, ...) use: the accent's lightness
+   * flips between modes so its foreground can stay one simple value instead
+   * of needing a third, theme-invariant token.
+   */
+  --color-fd-background: var(--pixelshift-paper);
+  --color-fd-foreground: var(--pixelshift-ink);
+  --color-fd-muted: var(--pixelshift-canvas);
+  --color-fd-muted-foreground: var(--pixelshift-muted);
+  --color-fd-popover: var(--pixelshift-paper-bright);
+  --color-fd-popover-foreground: var(--pixelshift-ink);
+  --color-fd-card: var(--pixelshift-board-surface);
+  --color-fd-card-foreground: var(--pixelshift-ink);
+  --color-fd-secondary: var(--pixelshift-surface);
+  --color-fd-secondary-foreground: var(--pixelshift-ink);
+  --color-fd-border: var(--pixelshift-line);
+  --color-fd-primary: hsl(14, 85%, 32%);
+  --color-fd-primary-foreground: var(--pixelshift-paper);
+  --color-fd-accent: rgba(255, 104, 56, 0.12);
+  --color-fd-accent-foreground: var(--pixelshift-ink);
+  --color-fd-ring: var(--pixelshift-lime);
+}
+
+.dark {
+  --pixelshift-ink: #f3f1e7;
+  --pixelshift-paper: #17160f;
+  --pixelshift-paper-bright: #201e14;
+  --pixelshift-board-surface: #201e15;
+  --pixelshift-surface: #1d1c13;
+  --pixelshift-canvas: #26241a;
+  --pixelshift-muted: #b8b5a6;
+  --pixelshift-caption: #918e7f;
+  --pixelshift-subtle: #726f60;
+  --pixelshift-line: rgba(243, 241, 231, 0.14);
+  --pixelshift-page-grid: rgba(243, 241, 231, 0.035);
+  --pixelshift-canvas-grid: rgba(243, 241, 231, 0.06);
+  --pixelshift-board-grid: rgba(21, 22, 20, 0.35);
+  /* --pixelshift-lime, --pixelshift-orange, and --pixelshift-success stay
+     fixed: all three are saturated and light enough to read against both
+     the light and dark page background. */
+
+  --color-fd-background: var(--pixelshift-paper);
+  --color-fd-foreground: var(--pixelshift-ink);
+  --color-fd-muted: var(--pixelshift-canvas);
+  --color-fd-muted-foreground: var(--pixelshift-muted);
+  --color-fd-popover: var(--pixelshift-paper-bright);
+  --color-fd-popover-foreground: var(--pixelshift-ink);
+  --color-fd-card: var(--pixelshift-board-surface);
+  --color-fd-card-foreground: var(--pixelshift-ink);
+  --color-fd-secondary: var(--pixelshift-surface);
+  --color-fd-secondary-foreground: var(--pixelshift-ink);
+  --color-fd-border: var(--pixelshift-line);
+  --color-fd-primary: var(--pixelshift-orange);
+  --color-fd-primary-foreground: var(--pixelshift-paper);
+  --color-fd-accent: rgba(255, 104, 56, 0.16);
+  --color-fd-accent-foreground: var(--pixelshift-ink);
+  --color-fd-ring: var(--pixelshift-lime);
+}
+
+@theme inline {
+  --color-pixel-ink: var(--pixelshift-ink);
+  --color-pixel-paper: var(--pixelshift-paper);
+  --color-pixel-paper-bright: var(--pixelshift-paper-bright);
+  --color-pixel-board-surface: var(--pixelshift-board-surface);
+  --color-pixel-surface: var(--pixelshift-surface);
+  --color-pixel-canvas: var(--pixelshift-canvas);
+  --color-pixel-muted: var(--pixelshift-muted);
+  --color-pixel-caption: var(--pixelshift-caption);
+  --color-pixel-subtle: var(--pixelshift-subtle);
+  --color-pixel-line: var(--pixelshift-line);
+  --color-pixel-lime: var(--pixelshift-lime);
+  --color-pixel-orange: var(--pixelshift-orange);
+  --color-pixel-success: var(--pixelshift-success);
+  --color-pixel-mark: var(--pixelshift-mark);
+  --color-pixel-mark-inverse: var(--pixelshift-mark-inverse);
+  --font-pixel-sans: var(--pixelshift-font-sans);
+  --font-pixel-serif: var(--pixelshift-font-serif);
+  --font-pixel-mono: var(--pixelshift-font-mono);
+}

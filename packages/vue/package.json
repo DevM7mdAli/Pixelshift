@@ -1,0 +1,64 @@
+{
+  "name": "pixelshift-vue",
+  "version": "0.1.0",
+  "description": "Vue image converter component for local browser PNG, JPEG, and WebP conversion.",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "pixelshift-web-core": "workspace:*"
+  },
+  "keywords": [
+    "pixelshift",
+    "vue",
+    "vue component",
+    "image converter",
+    "image conversion",
+    "image upload",
+    "image resize",
+    "webp",
+    "jpeg",
+    "png",
+    "browser"
+  ],
+  "peerDependencies": {
+    "vue": ">=2.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6",
+    "vite-plugin-dts": "^5.0.3",
+    "vitest": "^4.0.18",
+    "vue": "^3.5.40"
+  },
+  "license": "MIT",
+  "author": "Mohammed Alajmi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevM7mdAli/Pixelshift.git",
+    "directory": "packages/vue"
+  },
+  "bugs": {
+    "url": "https://github.com/DevM7mdAli/Pixelshift/issues"
+  },
+  "homepage": "https://github.com/DevM7mdAli/Pixelshift/tree/main/packages/vue#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}

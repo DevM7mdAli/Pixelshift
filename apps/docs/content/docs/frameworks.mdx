@@ -1,0 +1,169 @@
+---
+title: Framework adapters
+description: Use the same converter through idiomatic React, Angular, and Vue APIs.
+icon: Blocks
+---
+
+The adapters contain no conversion logic. They map native framework properties and events to the Lit element, keeping behavior consistent across applications.
+
+## Shared surface
+
+All adapters expose these properties:
+
+| Property    | Type                        | Default  |
+| ----------- | --------------------------- | -------- |
+| `format`    | `"png" \| "jpeg" \| "webp"` | `"webp"` |
+| `quality`   | `number`                    | `0.85`   |
+| `maxWidth`  | `number`                    | unset    |
+| `maxHeight` | `number`                    | unset    |
+| `multiple`  | `boolean`                   | `false`  |
+| `disabled`  | `boolean`                   | `false`  |
+
+Event names follow each framework's conventions:
+
+| Purpose             | React                  | Angular              | Vue template           |
+| ------------------- | ---------------------- | -------------------- | ---------------------- |
+| Files selected      | `onFilesSelected`      | `filesSelected`      | `@files-selected`      |
+| Conversion started  | `onConversionStart`    | `conversionStart`    | `@conversion-start`    |
+| Conversion finished | `onConversionComplete` | `conversionComplete` | `@conversion-complete` |
+| Conversion failed   | `onConversionError`    | `conversionError`    | `@conversion-error`    |
+
+## React
+
+```bash
+pnpm add pixelshift-react
+```
+
+```tsx
+import { useRef } from "react";
+import { ImageConverter, type ImageConverterElement } from "pixelshift-react";
+
+export function Upload() {
+  const converter = useRef<ImageConverterElement>(null);
+
+  return (
+    <>
+      <ImageConverter
+        ref={converter}
+        format="webp"
+        quality={0.85}
+        maxWidth={2400}
+        maxHeight={2400}
+        multiple
+        onFilesSelected={(event) => console.log(event.detail)}
+        onConversionStart={() => console.log("Conversion started")}
+        onConversionComplete={(event) => console.log(event.detail)}
+        onConversionError={(event) => console.error(event.detail)}
+      />
+
+      <button type="button" onClick={() => void converter.current?.convert()}>
+        Convert programmatically
+      </button>
+      <button type="button" onClick={() => converter.current?.reset()}>
+        Reset
+      </button>
+    </>
+  );
+}
+```
+
+## Angular
+
+```bash
+pnpm add pixelshift-angular
+```
+
+Import the standalone component, then use its typed inputs and outputs:
+
+```ts
+import { Component, ViewChild } from "@angular/core";
+import {
+  ImageConverterComponent,
+  type ConversionResult,
+} from "pixelshift-angular";
+
+@Component({
+  selector: "app-upload",
+  standalone: true,
+  imports: [ImageConverterComponent],
+  template: `
+    <pixelshift-converter
+      format="webp"
+      [quality]="0.85"
+      [maxWidth]="2400"
+      [maxHeight]="2400"
+      [multiple]="true"
+      (conversionComplete)="onComplete($event)"
+      (conversionError)="onError($event)"
+    />
+  `,
+})
+export class UploadComponent {
+  @ViewChild(ImageConverterComponent)
+  private converter?: ImageConverterComponent;
+
+  onComplete(results: ConversionResult[]): void {
+    console.log(results);
+  }
+
+  onError(error: unknown): void {
+    console.error(error);
+  }
+
+  convert(): void {
+    void this.converter?.convert();
+  }
+
+  reset(): void {
+    this.converter?.reset();
+  }
+}
+```
+
+## Vue
+
+```bash
+pnpm add pixelshift-vue
+```
+
+```vue
+<script setup lang="ts">
+import { ref } from "vue";
+import { ImageConverter, type ConversionResult } from "pixelshift-vue";
+
+type ConverterHandle = {
+  convert(): Promise<ConversionResult[]>;
+  reset(): void;
+};
+
+const converter = ref<ConverterHandle | null>(null);
+
+function onComplete(results: ConversionResult[]) {
+  console.log(results);
+}
+
+function onError(error: unknown) {
+  console.error(error);
+}
+</script>
+
+<template>
+  <ImageConverter
+    ref="converter"
+    format="webp"
+    :quality="0.85"
+    :max-width="2400"
+    :max-height="2400"
+    multiple
+    @conversion-complete="onComplete"
+    @conversion-error="onError"
+  />
+
+  <button type="button" @click="converter?.convert()">
+    Convert programmatically
+  </button>
+  <button type="button" @click="converter?.reset()">Reset</button>
+</template>
+```
+
+All three adapters re-export `ConversionOptions`, `ConversionResult`, and `OutputFormat`. The React and Vue packages also re-export `ImageConverterElement`; Angular exposes the element's public methods through `ImageConverterComponent`.

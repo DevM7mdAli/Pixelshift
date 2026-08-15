@@ -1,0 +1,32 @@
+---
+title: Introduction
+description: Local-first image conversion for the web, with one Lit component and adapters for every major framework.
+icon: BookOpenText
+---
+
+Pixelshift converts images entirely in the browser. The repository separates its conversion engine, Lit interface, and framework adapters so applications share behavior without sharing framework code.
+
+## What it handles
+
+| Direction | Formats                                                      |
+| --------- | ------------------------------------------------------------ |
+| Input     | PNG, JPEG, WebP, GIF (first frame), BMP                      |
+| Output    | PNG, JPEG, WebP when the browser provides a matching encoder |
+
+The Lit component supports JPEG/WebP output quality, maximum dimensions, and batch conversion. It also inherits the core engine's default 25 MiB input and 40-million-pixel safety limits.
+
+Use `pixelshift-core` directly when you need a custom JPEG background, an `AbortSignal`, or configurable byte and pixel limits.
+
+## Pick your integration
+
+- Use `pixelshift-web-core` for vanilla JavaScript or any environment that supports custom elements.
+- Use `pixelshift-react` for typed React events and properties.
+- Use `pixelshift-angular` for Angular inputs, outputs, and public methods.
+- Use `pixelshift-vue` for Vue props, emits, and exposed methods.
+- Use `pixelshift-core` when you need conversion logic without UI.
+
+## Privacy by architecture
+
+Files are decoded with browser APIs and encoded through canvas. There is no upload endpoint in the library, so image bytes remain on the user's device.
+
+Continue with [Getting started](/docs/getting-started) or try the [live demo](/#demo).

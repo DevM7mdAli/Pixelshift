@@ -1,0 +1,140 @@
+---
+title: Core API
+description: Convert images without UI using the framework-independent browser API.
+icon: Braces
+---
+
+Install the core when you need conversion behavior without the Lit component:
+
+```bash
+pnpm add pixelshift-core
+```
+
+The core API runs in the browser and depends on canvas, `Blob`, `File`, and browser image decoders.
+
+## `convertImage()`
+
+```ts
+import { convertImage } from "pixelshift-core";
+
+const result = await convertImage(file, {
+  format: "webp",
+  quality: 0.85,
+  maxWidth: 2400,
+  maxHeight: 2400,
+});
+```
+
+## Conversion options
+
+| Option       | Type                        | Default            | Purpose                                       |
+| ------------ | --------------------------- | ------------------ | --------------------------------------------- |
+| `format`     | `"png" \| "jpeg" \| "webp"` | required           | Select the output MIME type                   |
+| `quality`    | `number` from `0` to `1`    | `0.85`             | Set JPEG/WebP encoder quality                 |
+| `maxWidth`   | positive `number`           | original width     | Downscale while preserving aspect ratio       |
+| `maxHeight`  | positive `number`           | original height    | Downscale while preserving aspect ratio       |
+| `background` | CSS color string            | `#ffffff` for JPEG | Fill transparent pixels when creating JPEG    |
+| `maxBytes`   | positive `number`           | 25 MiB             | Reject larger input files                     |
+| `maxPixels`  | positive `number`           | 40 million pixels  | Reject larger decoded images                  |
+| `signal`     | `AbortSignal`               | unset              | Cooperatively cancel at conversion boundaries |
+
+## Conversion result
+
+```ts
+interface ConversionResult {
+  blob: Blob;
+  file: File;
+  inputType: string;
+  outputType: string;
+  originalSize: number;
+  convertedSize: number;
+  width: number;
+  height: number;
+  durationMs: number;
+}
+```
+
+## Batch conversion
+
+`convertImages()` processes files sequentially and returns results in input order:
+
+```ts
+import { convertImages } from "pixelshift-core";
+
+const results = await convertImages(files, {
+  format: "jpeg",
+  quality: 0.9,
+  background: "#ffffff",
+});
+```
+
+Batch conversion is fail-fast. If one file fails, the promise rejects immediately and does not return partial results from earlier files.
+
+## Cancellation
+
+Pass an `AbortSignal` to cancel before work begins or at the next conversion boundary:
+
+```ts
+const controller = new AbortController();
+
+const conversion = convertImage(file, {
+  format: "webp",
+  signal: controller.signal,
+});
+
+controller.abort();
+await conversion;
+```
+
+Cancellation rejects with an `ImageConversionError` whose code is `ABORTED`.
+
+## Errors
+
+`convertImage()` and `convertImages()` reject with `ImageConversionError` for known conversion failures.
+
+| Code                 | Meaning                                         |
+| -------------------- | ----------------------------------------------- |
+| `ABORTED`            | The supplied signal cancelled conversion        |
+| `DECODE_FAILED`      | The browser could not decode the input          |
+| `EMPTY_FILE`         | The input file contains no bytes                |
+| `FILE_TOO_LARGE`     | The input exceeds `maxBytes`                    |
+| `IMAGE_TOO_LARGE`    | Decoded dimensions exceed `maxPixels`           |
+| `INVALID_OPTION`     | Quality or target-size inputs are invalid       |
+| `UNSUPPORTED_INPUT`  | The input signature or MIME type is unsupported |
+| `UNSUPPORTED_OUTPUT` | The browser cannot encode the requested format  |
+
+```ts
+import { ImageConversionError, convertImage } from "pixelshift-core";
+
+try {
+  await convertImage(file, { format: "webp" });
+} catch (error) {
+  if (error instanceof ImageConversionError) {
+    console.error(error.code, error.message);
+  }
+}
+```
+
+## Output support
+
+Encoder support is browser-dependent. Probe it before offering an output format, or handle `UNSUPPORTED_OUTPUT`:
+
+```ts
+import { supportsOutputFormat } from "pixelshift-core";
+
+if (supportsOutputFormat("webp")) {
+  // It is safe to offer WebP in this browser.
+}
+```
+
+## Helpers
+
+| Export                 | Purpose                                             |
+| ---------------------- | --------------------------------------------------- |
+| `calculateTargetSize`  | Calculate aspect-ratio-preserving output dimensions |
+| `createOutputName`     | Replace a filename extension for the output format  |
+| `detectImageType`      | Detect a supported image MIME type                  |
+| `normalizeQuality`     | Apply the quality default and validate its range    |
+| `supportsOutputFormat` | Test the current browser's canvas encoder           |
+| `OUTPUT_FORMATS`       | List the supported output format names              |
+| `ImageConversionError` | Represent a known failure with a stable error code  |

@@ -1,0 +1,28 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "angular-app",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "ng build", "cwd": "apps/angular-app" }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ng serve --port 4400",
+        "cwd": "apps/angular-app"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ngc -p tsconfig.app.json --noEmit",
+        "cwd": "apps/angular-app"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "vitest run", "cwd": "apps/angular-app" }
+    }
+  }
+}

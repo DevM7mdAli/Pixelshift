@@ -1,0 +1,62 @@
+{
+  "name": "pixelshift-angular",
+  "version": "0.1.0",
+  "description": "Angular image converter component for local browser PNG, JPEG, and WebP conversion.",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/fesm2022/pixelshift-angular.mjs",
+  "module": "./dist/fesm2022/pixelshift-angular.mjs",
+  "types": "./dist/types/pixelshift-angular.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "ng-packagr -p ng-package.json",
+    "typecheck": "ngc -p tsconfig.lib.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "pixelshift-web-core": "workspace:*",
+    "tslib": "^2.8.1"
+  },
+  "keywords": [
+    "pixelshift",
+    "angular",
+    "angular component",
+    "image converter",
+    "image conversion",
+    "image upload",
+    "image resize",
+    "webp",
+    "jpeg",
+    "png",
+    "browser"
+  ],
+  "peerDependencies": {
+    "@angular/common": ">=17.0.0",
+    "@angular/core": ">=17.0.0"
+  },
+  "devDependencies": {
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/compiler-cli": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "ng-packagr": "^21.2.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "license": "MIT",
+  "author": "Mohammed Alajmi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevM7mdAli/Pixelshift.git",
+    "directory": "packages/angular"
+  },
+  "bugs": {
+    "url": "https://github.com/DevM7mdAli/Pixelshift/issues"
+  },
+  "homepage": "https://github.com/DevM7mdAli/Pixelshift/tree/main/packages/angular#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}

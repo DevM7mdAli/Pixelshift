@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Superseded pull request runs are disposable; main runs feed the release job
+  # and must be allowed to finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  commitlint:
+    name: Commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint pull request commits
+        if: github.event_name == 'pull_request'
+        run: pnpm exec commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.event.pull_request.head.sha }}" --verbose
+      - name: Lint pushed commits
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        run: pnpm exec commitlint --from "${{ github.event.before }}" --to "${{ github.sha }}" --verbose
+      - name: Lint an initial push
+        if: github.event_name == 'push' && github.event.before == '0000000000000000000000000000000000000000'
+        run: pnpm exec commitlint --from "$(git rev-list --max-parents=0 HEAD)" --to "${{ github.sha }}" --verbose
+
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Restore the Nx cache
+        uses: actions/cache@v6
+        with:
+          path: .nx/cache
+          key: nx-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            nx-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            nx-${{ runner.os }}-
+      - run: pnpm install --frozen-lockfile
+      # The same checks the pre-commit hook runs, so a bypassed hook cannot
+      # land unformatted code.
+      - name: Check formatting
+        run: pnpm format:check
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm test
+      # Fails if a dependency got inlined, an entry stopped sharing its chunk,
+      # or a package outgrew its size budget.
+      - name: Audit the published bundles
+        run: pnpm check:bundle
+
+  release:
+    name: Release
+    needs: [commitlint, verify]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the version commit, tags, and GitHub releases
+      pull-requests: write # open and update the version pull request
+      id-token: write # npm provenance attestation
+    concurrency:
+      group: release-main
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          # Writes the .npmrc that authenticates the publish with NODE_AUTH_TOKEN.
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      # With changesets pending, this opens or updates a "Version Packages" pull
+      # request that bumps every affected package.json and writes CHANGELOGs.
+      # Once that pull request merges there are no changesets left, so the same
+      # step publishes to npm and tags the release instead.
+      - name: Version or publish
+        uses: changesets/action@v2
+        with:
+          version-script: pnpm changeset:version
+          publish-script: pnpm changeset:publish
+          commit-message: "chore(release): version packages"
+          pr-title: "chore(release): version packages"
+          github-token: ${{ secrets.RELEASE_TOKEN || github.token }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true

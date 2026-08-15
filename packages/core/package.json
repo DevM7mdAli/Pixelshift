@@ -1,0 +1,59 @@
+{
+  "name": "pixelshift-core",
+  "version": "0.1.0",
+  "description": "Pixelshift browser image conversion logic shared by every framework adapter.",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "pixelshift",
+    "image converter",
+    "image conversion",
+    "image processing",
+    "image resize",
+    "browser",
+    "canvas",
+    "png",
+    "jpeg",
+    "webp",
+    "gif",
+    "bmp",
+    "typescript"
+  ],
+  "author": "Mohammed Alajmi",
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6",
+    "vite-plugin-dts": "^5.0.3",
+    "vitest": "^4.0.18"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevM7mdAli/Pixelshift.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/DevM7mdAli/Pixelshift/issues"
+  },
+  "homepage": "https://github.com/DevM7mdAli/Pixelshift/tree/main/packages/core#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}
