@@ -74,6 +74,8 @@ jobs:
     needs: [commitlint, verify]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+
+    environment: NPM
     permissions:
       contents: write # push the version commit, tags, and GitHub releases
       pull-requests: write # open and update the version pull request
