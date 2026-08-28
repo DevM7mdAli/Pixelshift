@@ -5,7 +5,7 @@ import "./global.css";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const configuredSiteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://devm7mdali.github.io/Pixelshift";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://pixelshift.mohammed-alajmi.me";
 const configuredSiteBase = new URL(`${configuredSiteUrl.replace(/\/$/, "")}/`);
 const siteRoot = basePath
   ? new URL(`${basePath.replace(/^\//, "")}/`, configuredSiteBase.origin)
@@ -86,6 +86,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }}
           type="application/ld+json"
         />
+        {/* Cloudflare Web Analytics */}
+        <script
+          data-cf-beacon='{"token": "9b9e2af0616847fe967225bd8c399ba1"}'
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          type="module"
+        />
+        {/* End Cloudflare Web Analytics */}
       </body>
     </html>
   );

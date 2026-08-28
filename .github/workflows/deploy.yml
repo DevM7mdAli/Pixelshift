@@ -42,15 +42,12 @@ jobs:
       # first, since Nx infers the dependency edge from the workspace:*
       # references in apps/docs/package.json. No Nx cache is restored in this
       # workflow on purpose: the cache key doesn't account for
-      # NEXT_PUBLIC_BASE_PATH, so a plain `pnpm build` elsewhere (CI builds
-      # docs without it) could produce a same-key entry and get reused here
-      # with the wrong base path baked in.
+      # NEXT_PUBLIC_SITE_URL, so a local/CI docs build could get reused here
+      # with the wrong origin baked into metadata.
       - name: Build the static site
         run: pnpm exec nx run docs:build
         env:
-          # Served at https://mohammed-alajmi.me/Pixelshift/ — matches
-          # `basePath` in apps/docs/next.config.mjs.
-          NEXT_PUBLIC_BASE_PATH: /Pixelshift
+          NEXT_PUBLIC_SITE_URL: https://pixelshift.mohammed-alajmi.me
       - uses: actions/upload-pages-artifact@v5
         with:
           path: apps/docs/out
