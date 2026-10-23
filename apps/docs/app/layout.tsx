@@ -5,7 +5,7 @@ import "./global.css";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const configuredSiteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://pixelshift.mohammed-alajmi.me";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://pixelshift.mohammed.win";
 const configuredSiteBase = new URL(`${configuredSiteUrl.replace(/\/$/, "")}/`);
 const siteRoot = basePath
   ? new URL(`${basePath.replace(/^\//, "")}/`, configuredSiteBase.origin)
