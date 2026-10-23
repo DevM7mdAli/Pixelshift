@@ -47,7 +47,7 @@ jobs:
       - name: Build the static site
         run: pnpm exec nx run docs:build
         env:
-          NEXT_PUBLIC_SITE_URL: https://pixelshift.mohammed-alajmi.me
+          NEXT_PUBLIC_SITE_URL: https://pixelshift.mohammed.win
       - uses: actions/upload-pages-artifact@v5
         with:
           path: apps/docs/out
