@@ -8,7 +8,10 @@ import {
   type OnChanges,
   type SimpleChanges,
 } from "@angular/core";
-import type { PixelshiftTool } from "pixelshift-web-core";
+import type {
+  PixelshiftMessagesInput,
+  PixelshiftTool,
+} from "pixelshift-web-core";
 
 export interface ProcessErrorDetail {
   file: File;
@@ -29,6 +32,10 @@ export abstract class PixelshiftToolHost<TResult> implements OnChanges {
   @Input() auto?: boolean;
   @Input() heading?: string;
   @Input() description?: string;
+  /** BCP 47 locale; defaults to the nearest `lang` attribute. */
+  @Input() locale?: string;
+  /** Translations or overrides for this component. */
+  @Input() messages?: PixelshiftMessagesInput;
 
   @Output() readonly filesSelected = new EventEmitter<File[]>();
   @Output() readonly processStart = new EventEmitter<File[]>();

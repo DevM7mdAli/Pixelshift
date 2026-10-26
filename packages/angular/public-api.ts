@@ -11,7 +11,10 @@ export {
   YouTubeThumbnailComponent,
 } from "./tools.component.js";
 export { PixelshiftToolHost, type ProcessErrorDetail } from "./tool-host.js";
+export { ar, en, registerLocale, registeredLocales } from "pixelshift-web-core";
 export type {
+  PixelshiftMessages,
+  PixelshiftMessagesInput,
   BackgroundRemovalResult,
   Base64Result,
   ColorInfo,

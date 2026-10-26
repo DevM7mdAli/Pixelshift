@@ -5,6 +5,22 @@ export {
   type ProcessProgress,
 } from "./base.js";
 export {
+  formatMessage,
+  formattersFor,
+  localeDirection,
+  registerLocale,
+  registeredLocales,
+  resolveMessages,
+  selectPlural,
+  type DeepPartial,
+  type Formatters,
+  type PixelshiftMessages,
+  type PixelshiftMessagesInput,
+  type Plural,
+} from "./i18n.js";
+export { en } from "./locales/en.js";
+export { ar } from "./locales/ar.js";
+export {
   IMAGE_CONVERTER_TAG,
   ImageConverterElement,
   defineImageConverter,

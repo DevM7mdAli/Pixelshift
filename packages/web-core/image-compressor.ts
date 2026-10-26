@@ -1,6 +1,5 @@
 import {
   compressImage,
-  formatBytes,
   type CompressionResult,
   type OutputFormat,
 } from "pixelshift-core";
@@ -13,9 +12,25 @@ import {
   positiveNumberOrUndefined,
   rangeInput,
 } from "./fields.js";
+import type { CompressorMessages } from "./i18n.js";
 import { ui } from "./ui.js";
 
 export const IMAGE_COMPRESSOR_TAG = "pixelshift-image-compressor";
+
+export const compressorMessages: CompressorMessages = {
+  heading: "Image compressor",
+  description:
+    "Reduce file size of JPEG, PNG, and WebP images without visible quality loss.",
+  action: "Compress",
+  busy: "Compressing",
+  targetSize: "Target size",
+  savedSummary: {
+    one: "Saved {saved} ({percent}) on {count} image.",
+    other: "Saved {saved} ({percent}) across {count} images.",
+  },
+  alreadyOptimal: "already optimal",
+  aboveTarget: "above target",
+};
 
 /**
  * `<pixelshift-image-compressor>` — shrinks JPEG, PNG, and WebP files while
@@ -51,17 +66,11 @@ export class ImageCompressorElement extends PixelshiftTool<CompressionResult> {
 
   private comparing: CompressionResult | undefined;
 
-  protected get defaultHeading() {
-    return "Image compressor";
+  protected get messageDefaults() {
+    return { compressor: compressorMessages };
   }
-  protected get defaultDescription() {
-    return "Reduce file size of JPEG, PNG, and WebP images without visible quality loss.";
-  }
-  protected get actionLabel() {
-    return "Compress";
-  }
-  protected get busyLabel() {
-    return "Compressing";
+  protected get toolMessages() {
+    return this.t.compressor;
   }
   protected get allowsMultiple() {
     return this.multiple;
@@ -82,12 +91,13 @@ export class ImageCompressorElement extends PixelshiftTool<CompressionResult> {
   }
 
   protected renderSettings() {
+    const common = this.t.common;
     return html`
       <div class="${ui.section} ${ui.grid}">
         ${rangeInput({
-          label: "Quality",
+          label: common.quality,
           value: this.quality,
-          display: `${Math.round(this.quality * 100)}%`,
+          display: this.fmt.percent(this.quality),
           min: 0.1,
           max: 1,
           step: 0.05,
@@ -96,16 +106,17 @@ export class ImageCompressorElement extends PixelshiftTool<CompressionResult> {
         })}
         ${formatSelect({
           value: this.format,
+          messages: common,
           disabled: this.locked,
           onChange: (format) => (this.format = format),
         })}
         ${numberInput({
-          label: "Target size",
+          label: this.t.compressor.targetSize,
           value: this.targetSize
             ? Math.round(this.targetSize / 1024)
             : undefined,
-          placeholder: "No limit",
-          suffix: "KB",
+          placeholder: common.placeholderNoLimit,
+          suffix: common.unitKilobytes,
           disabled: this.locked,
           onInput: (value) => {
             const kilobytes = positiveNumberOrUndefined(value);
@@ -113,10 +124,10 @@ export class ImageCompressorElement extends PixelshiftTool<CompressionResult> {
           },
         })}
         ${numberInput({
-          label: "Maximum width",
+          label: common.maximumWidth,
           value: this.maxWidth,
-          placeholder: "Original",
-          suffix: "px",
+          placeholder: common.placeholderOriginal,
+          suffix: common.unitPixels,
           disabled: this.locked,
           onInput: (value) =>
             (this.maxWidth = positiveNumberOrUndefined(value)),
@@ -139,28 +150,32 @@ export class ImageCompressorElement extends PixelshiftTool<CompressionResult> {
     return html`
       ${this.output.length > 1
         ? html`<p class="m-0 mt-4 text-sm text-body">
-            Saved
-            <strong class="font-semibold text-ink"
-              >${formatBytes(before - after)}</strong
-            >
-            (${Math.round((1 - after / before) * 100)}%) across
-            ${this.output.length} images.
+            ${this.plural(this.t.compressor.savedSummary, this.output.length, {
+              saved: this.fmt.bytes(before - after),
+              percent: this.fmt.percent(1 - after / before),
+            })}
           </p>`
         : nothing}
       ${this.renderImageResults(
         this.output,
         (result) => {
           const compressed = result as CompressionResult;
-          return html`${formatBytes(compressed.originalSize)} →
-            ${formatBytes(compressed.convertedSize)}
+          const { common, compressor } = this.t;
+          return html`${this.msg(common.sizeChange, {
+              from: this.fmt.bytes(compressed.originalSize),
+              to: this.fmt.bytes(compressed.convertedSize),
+            })}
+            ·
             <span
               class=${compressed.savings > 0.005
                 ? "font-medium text-success"
                 : ""}
               >${compressed.unchanged
-                ? "· already optimal"
-                : `· ${Math.max(0, Math.round(compressed.savings * 100))}% smaller`}</span
-            >${compressed.targetMet ? "" : " · above target"}`;
+                ? compressor.alreadyOptimal
+                : this.msg(common.smaller, {
+                    percent: this.fmt.percent(Math.max(0, compressed.savings)),
+                  })}</span
+            >${compressed.targetMet ? "" : ` · ${compressor.aboveTarget}`}`;
         },
         {
           actions: (result) =>
@@ -175,7 +190,9 @@ export class ImageCompressorElement extends PixelshiftTool<CompressionResult> {
                         ? undefined
                         : (result as CompressionResult))}
                 >
-                  ${this.comparing === result ? "Hide" : "Compare"}
+                  ${this.comparing === result
+                    ? this.t.common.hideCompare
+                    : this.t.common.compare}
                 </button>`
               : nothing,
           extra: (result) => {

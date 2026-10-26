@@ -120,6 +120,17 @@ describe("documentation site", () => {
     }
   });
 
+  it("documents localization and right-to-left layout", () => {
+    const i18n = readFileSync(fromDocsRoot("content/docs/i18n.mdx"), "utf8");
+    const meta = readFileSync(fromDocsRoot("content/docs/meta.json"), "utf8");
+
+    expect(JSON.parse(meta).pages).toContain("i18n");
+    expect(i18n).toContain("registerLocale");
+    expect(i18n).toContain("PixelshiftMessages");
+    expect(i18n).toContain('dir="rtl"');
+    expect(i18n).toContain("CLDR plural category");
+  });
+
   it("shows meaningful icons in docs navigation", () => {
     const source = readFileSync(fromDocsRoot("lib/source.ts"), "utf8");
     const layout = readFileSync(fromDocsRoot("lib/layout.shared.tsx"), "utf8");
@@ -129,6 +140,7 @@ describe("documentation site", () => {
       ["tools.mdx", "LayoutGrid"],
       ["web-component.mdx", "Box"],
       ["frameworks.mdx", "Blocks"],
+      ["i18n.mdx", "Languages"],
       ["api.mdx", "Braces"],
       ["development.mdx", "Wrench"],
     ] as const;

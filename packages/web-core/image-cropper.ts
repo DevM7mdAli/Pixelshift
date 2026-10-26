@@ -1,5 +1,6 @@
 import {
   ASPECT_RATIOS,
+  ImageConversionError,
   cropImage,
   parseAspectRatio,
   type ImageResult,
@@ -24,9 +25,39 @@ import {
 } from "./crop-math.js";
 import { describeSize, formatSelect, numberInput } from "./fields.js";
 import { icon } from "./icons.js";
+import type { CropperMessages } from "./i18n.js";
 import { ui } from "./ui.js";
 
 export const IMAGE_CROPPER_TAG = "pixelshift-image-cropper";
+
+export const cropperMessages: CropperMessages = {
+  heading: "Image cropper",
+  description: "Crop with a preset aspect ratio or exact pixel dimensions.",
+  action: "Crop image",
+  busy: "Cropping",
+  aspectRatio: "Aspect ratio",
+  free: "Free",
+  ratios: {
+    free: "Free",
+    "1:1": "Square",
+    "4:5": "Portrait",
+    "3:4": "3:4",
+    "2:3": "2:3",
+    "9:16": "Story",
+    "4:3": "4:3",
+    "3:2": "3:2",
+    "16:9": "Widescreen",
+    "21:9": "Cinema",
+  },
+  resetBox: "Reset box",
+  x: "X",
+  y: "Y",
+  width: "Width",
+  height: "Height",
+  cropArea:
+    "Crop area {width} by {height} pixels. Use the arrow keys to move it.",
+  imageAlt: "Image being cropped",
+};
 
 interface Drag {
   handle: CropHandle;
@@ -152,17 +183,11 @@ export class ImageCropperElement extends PixelshiftTool<ImageResult> {
   private source: (Size & { file: File }) | undefined;
   private drag: Drag | undefined;
 
-  protected get defaultHeading() {
-    return "Image cropper";
+  protected get messageDefaults() {
+    return { cropper: cropperMessages };
   }
-  protected get defaultDescription() {
-    return "Crop with a preset aspect ratio or exact pixel dimensions.";
-  }
-  protected get actionLabel() {
-    return "Crop image";
-  }
-  protected get busyLabel() {
-    return "Cropping";
+  protected get toolMessages() {
+    return this.t.cropper;
   }
 
   private get ratio(): number | undefined {
@@ -202,7 +227,13 @@ export class ImageCropperElement extends PixelshiftTool<ImageResult> {
     };
     image.onerror = () => {
       this.failures = [
-        { file, error: new Error("The browser could not decode this image.") },
+        {
+          file,
+          error: new ImageConversionError(
+            "The browser could not decode this image.",
+            "DECODE_FAILED",
+          ),
+        },
       ];
     };
     image.src = this.urlFor(file);
@@ -248,30 +279,37 @@ export class ImageCropperElement extends PixelshiftTool<ImageResult> {
               class="flex h-48 items-center justify-center gap-2 text-sm text-muted"
               role="status"
             >
-              <span class="spinner" aria-hidden="true"></span> Loading image…
+              <span class="spinner" aria-hidden="true"></span>
+              ${this.t.common.loadingImage}
             </div>`}
       </div>
       ${this.renderCropFields()} ${this.renderActions()}
       ${this.renderFailures()}
-      ${this.renderImageResults(this.output, describeSize)}
+      ${this.renderImageResults(this.output, (result) =>
+        describeSize(result, this.fmt),
+      )}
       <div class="mt-3">${this.renderDropzone(true)}</div>
     `;
   }
 
   private renderAspectPicker() {
     return html`
-      <div class=${ui.segmented} role="group" aria-label="Aspect ratio">
+      <div
+        class=${ui.segmented}
+        role="group"
+        aria-label=${this.t.cropper.aspectRatio}
+      >
         ${ASPECT_RATIOS.map(
           (preset) =>
             html`<button
               class=${ui.segment}
               type="button"
-              title=${preset.label}
+              title=${this.t.cropper.ratios[preset.id] ?? preset.label}
               aria-pressed=${String(this.aspectRatio === preset.id)}
               ?disabled=${this.locked}
               @click=${() => (this.aspectRatio = preset.id)}
             >
-              ${preset.id === "free" ? "Free" : preset.id}
+              ${preset.id === "free" ? this.t.cropper.free : preset.id}
             </button>`,
         )}
       </div>
@@ -284,20 +322,24 @@ export class ImageCropperElement extends PixelshiftTool<ImageResult> {
     return html`
       <div
         class="stage"
+        dir="ltr"
         @pointermove=${this.onPointerMove}
         @pointerup=${this.onPointerUp}
         @pointercancel=${this.onPointerUp}
       >
         <img
           src=${this.urlFor(source.file)}
-          alt="Image being cropped"
+          alt=${this.t.cropper.imageAlt}
           draggable="false"
         />
         <div
           class="crop"
           tabindex="0"
           role="group"
-          aria-label=${`Crop area ${Math.round(crop.width)} by ${Math.round(crop.height)} pixels. Use arrow keys to move.`}
+          aria-label=${this.msg(this.t.cropper.cropArea, {
+            width: this.fmt.number(Math.round(crop.width)),
+            height: this.fmt.number(Math.round(crop.height)),
+          })}
           style=${`left:${percent(crop.x, source.width)};top:${percent(crop.y, source.height)};width:${percent(crop.width, source.width)};height:${percent(crop.height, source.height)}`}
           @pointerdown=${(event: PointerEvent) =>
             this.onPointerDown(event, "move")}
@@ -340,17 +382,10 @@ export class ImageCropperElement extends PixelshiftTool<ImageResult> {
       <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-5">
         ${(["x", "y", "width", "height"] as const).map((key) =>
           numberInput({
-            label:
-              key === "x"
-                ? "X"
-                : key === "y"
-                  ? "Y"
-                  : key === "width"
-                    ? "Width"
-                    : "Height",
+            label: this.t.cropper[key],
             value: crop?.[key],
             min: key === "x" || key === "y" ? 0 : 1,
-            suffix: "px",
+            suffix: this.t.common.unitPixels,
             disabled,
             onInput: (value) => set(key, value),
           }),
@@ -358,6 +393,7 @@ export class ImageCropperElement extends PixelshiftTool<ImageResult> {
         <div class="col-span-2 sm:col-span-1">
           ${formatSelect({
             value: this.format,
+            messages: this.t.common,
             disabled: this.locked,
             onChange: (format) => (this.format = format),
           })}
@@ -377,8 +413,11 @@ export class ImageCropperElement extends PixelshiftTool<ImageResult> {
           @click=${() => void this.process()}
         >
           ${this.busy
-            ? html`<span class="spinner" aria-hidden="true"></span> Cropping…`
-            : "Crop image"}
+            ? html`<span class="spinner" aria-hidden="true"></span> ${this.msg(
+                  this.t.common.busy,
+                  { label: this.t.cropper.busy },
+                )}`
+            : this.t.cropper.action}
         </button>
         <button
           class=${ui.secondary}
@@ -391,7 +430,7 @@ export class ImageCropperElement extends PixelshiftTool<ImageResult> {
             this.emitCrop();
           }}
         >
-          ${icon("reset")} Reset box
+          ${icon("reset")} ${this.t.cropper.resetBox}
         </button>
         <button
           class=${ui.secondary}
@@ -399,7 +438,7 @@ export class ImageCropperElement extends PixelshiftTool<ImageResult> {
           ?disabled=${this.locked}
           @click=${this.reset}
         >
-          Clear
+          ${this.t.common.clear}
         </button>
       </div>
     `;

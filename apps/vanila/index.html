@@ -10,9 +10,18 @@
       <header class="app-heading">
         <h1>Vanilla integration</h1>
         <p>The Lit custom elements consumed without a framework.</p>
-        <label class="app-toggle">
-          <input id="dark-mode" type="checkbox" /> Dark mode
-        </label>
+        <div class="app-controls">
+          <label class="app-toggle">
+            <input id="dark-mode" type="checkbox" /> Dark mode
+          </label>
+          <label class="app-toggle">
+            Language
+            <select id="language">
+              <option value="en">English</option>
+              <option value="ar">العربية</option>
+            </select>
+          </label>
+        </div>
       </header>
       <pixelshift-studio></pixelshift-studio>
     </main>

@@ -68,8 +68,10 @@ Registration functions are idempotent and safe to call during server rendering; 
 | `auto`        | `auto`         | `false`         | Process as soon as files arrive instead of waiting for the button |
 | `heading`     | `heading`      | tool's title    | Replace the title                                                 |
 | `description` | `description`  | tool's subtitle | Replace the subtitle                                              |
+| `locale`      | `locale`       | nearest `lang`  | BCP 47 locale for the UI language, such as `"ar"`                 |
+| `messages`    | —              | unset           | Translations or overrides for this element only                   |
 
-The color picker and the Base64 tool default `auto` to `true`.
+The color picker and the Base64 tool default `auto` to `true`. See [Localization & RTL](/docs/i18n) for `locale`, `messages`, and right-to-left layout.
 
 Dark mode follows `is-dark-mode` rather than `prefers-color-scheme`: an element cannot see the host page's own theme state through its shadow root, so the page sets it explicitly.
 

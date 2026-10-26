@@ -1,6 +1,8 @@
+import { YOUTUBE_THUMBNAIL } from "pixelshift-core";
 import {
   LitElement,
   html,
+  nothing,
   type CSSResultGroup,
   type PropertyDeclarations,
   type PropertyValues,
@@ -8,17 +10,35 @@ import {
 } from "lit";
 import { register, type PixelshiftTool } from "./base.js";
 import { TWStyles } from "./CSS/twlit.js";
-import { defineBackgroundRemover } from "./background-remover.js";
-import { defineColorPicker } from "./color-picker.js";
-import { defineImageCompressor } from "./image-compressor.js";
-import { defineImageConverter } from "./image-converter.js";
-import { defineImageCropper } from "./image-cropper.js";
-import { defineImageResizer } from "./image-resizer.js";
-import { defineImageToBase64 } from "./image-to-base64.js";
-import { defineSocialResizer } from "./social-resizer.js";
+import {
+  backgroundMessages,
+  defineBackgroundRemover,
+} from "./background-remover.js";
+import { colorPickerMessages, defineColorPicker } from "./color-picker.js";
+import {
+  LocaleController,
+  commonMessages,
+  errorMessages,
+  formatMessage,
+  type PixelshiftMessages,
+  type PixelshiftMessagesInput,
+  type StudioMessages,
+} from "./i18n.js";
+import {
+  compressorMessages,
+  defineImageCompressor,
+} from "./image-compressor.js";
+import { converterMessages, defineImageConverter } from "./image-converter.js";
+import { cropperMessages, defineImageCropper } from "./image-cropper.js";
+import { defineImageResizer, resizerMessages } from "./image-resizer.js";
+import { base64Messages, defineImageToBase64 } from "./image-to-base64.js";
+import { defineSocialResizer, socialMessages } from "./social-resizer.js";
 import { themeStyles } from "./theme.js";
 import { ui } from "./ui.js";
-import { defineYouTubeThumbnail } from "./youtube-thumbnail.js";
+import {
+  defineYouTubeThumbnail,
+  youtubeMessages,
+} from "./youtube-thumbnail.js";
 
 export const STUDIO_TAG = "pixelshift-studio";
 
@@ -36,123 +56,107 @@ export const STUDIO_TOOLS = [
 
 export type StudioTool = (typeof STUDIO_TOOLS)[number];
 
-interface ToolDefinition {
-  label: string;
-  title: string;
-  description: string;
-  render(props: { dark: boolean; disabled: boolean }): TemplateResult;
+export const studioMessages: StudioMessages = {
+  toolsLabel: "Image tools",
+  tabs: {
+    compress: "Compress",
+    resize: "Resize",
+    convert: "Convert",
+    crop: "Crop",
+    colors: "Colors",
+    base64: "Base64",
+    social: "Social",
+    youtube: "YouTube",
+    background: "Background",
+  },
+};
+
+interface ToolProps {
+  dark: boolean;
+  disabled: boolean;
+  locale: string | undefined;
+  messages: PixelshiftMessagesInput | undefined;
 }
 
 /** Literal tags per tool: Lit templates cannot interpolate tag names. */
-const TOOLS: Record<StudioTool, ToolDefinition> = {
-  compress: {
-    label: "Compress",
-    title: "Image compressor",
-    description:
-      "Reduce file size of JPEG, PNG, and WebP images without visible quality loss.",
-    render: ({ dark, disabled }) =>
-      html`<pixelshift-image-compressor
-        bare
-        multiple
-        ?is-dark-mode=${dark}
-        ?disabled=${disabled}
-      ></pixelshift-image-compressor>`,
-  },
-  resize: {
-    label: "Resize",
-    title: "Image resizer",
-    description: "Resize images to exact dimensions or a percentage.",
-    render: ({ dark, disabled }) =>
-      html`<pixelshift-image-resizer
-        bare
-        multiple
-        ?is-dark-mode=${dark}
-        ?disabled=${disabled}
-      ></pixelshift-image-resizer>`,
-  },
-  convert: {
-    label: "Convert",
-    title: "Image converter",
-    description: "Convert JPEG, PNG, GIF, and BMP to WebP, PNG, or JPEG.",
-    render: ({ dark, disabled }) =>
-      html`<pixelshift-image-converter
-        bare
-        multiple
-        ?is-dark-mode=${dark}
-        ?disabled=${disabled}
-      ></pixelshift-image-converter>`,
-  },
-  crop: {
-    label: "Crop",
-    title: "Image cropper",
-    description: "Crop with a preset aspect ratio or exact pixel dimensions.",
-    render: ({ dark, disabled }) =>
-      html`<pixelshift-image-cropper
-        bare
-        ?is-dark-mode=${dark}
-        ?disabled=${disabled}
-      ></pixelshift-image-cropper>`,
-  },
-  colors: {
-    label: "Colors",
-    title: "Color picker",
-    description: "Extract colors from any image as HEX, RGB, or HSL.",
-    render: ({ dark, disabled }) =>
-      html`<pixelshift-color-picker
-        bare
-        ?is-dark-mode=${dark}
-        ?disabled=${disabled}
-      ></pixelshift-color-picker>`,
-  },
-  base64: {
-    label: "Base64",
-    title: "Image to Base64",
-    description: "Encode images as Base64 data URLs for embedding in code.",
-    render: ({ dark, disabled }) =>
-      html`<pixelshift-image-to-base64
-        bare
-        ?is-dark-mode=${dark}
-        ?disabled=${disabled}
-      ></pixelshift-image-to-base64>`,
-  },
-  social: {
-    label: "Social",
-    title: "Social media resizer",
-    description:
-      "Resize for Instagram, Facebook, X, YouTube, LinkedIn, Snapchat, and more.",
-    render: ({ dark, disabled }) =>
-      html`<pixelshift-social-resizer
-        bare
-        multiple
-        ?is-dark-mode=${dark}
-        ?disabled=${disabled}
-      ></pixelshift-social-resizer>`,
-  },
-  youtube: {
-    label: "YouTube",
-    title: "YouTube thumbnail resizer",
-    description:
-      "Resize any image to 1280 × 720 and keep it under YouTube's 2 MB limit.",
-    render: ({ dark, disabled }) =>
-      html`<pixelshift-youtube-thumbnail
-        bare
-        ?is-dark-mode=${dark}
-        ?disabled=${disabled}
-      ></pixelshift-youtube-thumbnail>`,
-  },
-  background: {
-    label: "Background",
-    title: "Background remover",
-    description:
-      "Remove plain backgrounds from product photos, logos, and signatures.",
-    render: ({ dark, disabled }) =>
-      html`<pixelshift-background-remover
-        bare
-        multiple
-        ?is-dark-mode=${dark}
-        ?disabled=${disabled}
-      ></pixelshift-background-remover>`,
-  },
+const TOOLS: Record<StudioTool, (props: ToolProps) => TemplateResult> = {
+  compress: ({ dark, disabled, locale, messages }) =>
+    html`<pixelshift-image-compressor
+      bare
+      multiple
+      ?is-dark-mode=${dark}
+      ?disabled=${disabled}
+      locale=${locale ?? nothing}
+      .messages=${messages}
+    ></pixelshift-image-compressor>`,
+  resize: ({ dark, disabled, locale, messages }) =>
+    html`<pixelshift-image-resizer
+      bare
+      multiple
+      ?is-dark-mode=${dark}
+      ?disabled=${disabled}
+      locale=${locale ?? nothing}
+      .messages=${messages}
+    ></pixelshift-image-resizer>`,
+  convert: ({ dark, disabled, locale, messages }) =>
+    html`<pixelshift-image-converter
+      bare
+      multiple
+      ?is-dark-mode=${dark}
+      ?disabled=${disabled}
+      locale=${locale ?? nothing}
+      .messages=${messages}
+    ></pixelshift-image-converter>`,
+  crop: ({ dark, disabled, locale, messages }) =>
+    html`<pixelshift-image-cropper
+      bare
+      ?is-dark-mode=${dark}
+      ?disabled=${disabled}
+      locale=${locale ?? nothing}
+      .messages=${messages}
+    ></pixelshift-image-cropper>`,
+  colors: ({ dark, disabled, locale, messages }) =>
+    html`<pixelshift-color-picker
+      bare
+      ?is-dark-mode=${dark}
+      ?disabled=${disabled}
+      locale=${locale ?? nothing}
+      .messages=${messages}
+    ></pixelshift-color-picker>`,
+  base64: ({ dark, disabled, locale, messages }) =>
+    html`<pixelshift-image-to-base64
+      bare
+      ?is-dark-mode=${dark}
+      ?disabled=${disabled}
+      locale=${locale ?? nothing}
+      .messages=${messages}
+    ></pixelshift-image-to-base64>`,
+  social: ({ dark, disabled, locale, messages }) =>
+    html`<pixelshift-social-resizer
+      bare
+      multiple
+      ?is-dark-mode=${dark}
+      ?disabled=${disabled}
+      locale=${locale ?? nothing}
+      .messages=${messages}
+    ></pixelshift-social-resizer>`,
+  youtube: ({ dark, disabled, locale, messages }) =>
+    html`<pixelshift-youtube-thumbnail
+      bare
+      ?is-dark-mode=${dark}
+      ?disabled=${disabled}
+      locale=${locale ?? nothing}
+      .messages=${messages}
+    ></pixelshift-youtube-thumbnail>`,
+  background: ({ dark, disabled, locale, messages }) =>
+    html`<pixelshift-background-remover
+      bare
+      multiple
+      ?is-dark-mode=${dark}
+      ?disabled=${disabled}
+      locale=${locale ?? nothing}
+      .messages=${messages}
+    ></pixelshift-background-remover>`,
 };
 
 /**
@@ -171,6 +175,8 @@ export class PixelshiftStudioElement extends LitElement {
       disabled: { type: Boolean, reflect: true },
       isDarkMode: { type: Boolean, attribute: "is-dark-mode", reflect: true },
       bare: { type: Boolean, reflect: true },
+      locale: { type: String },
+      messages: { attribute: false },
       visited: { state: true },
     };
   }
@@ -187,6 +193,29 @@ export class PixelshiftStudioElement extends LitElement {
   isDarkMode = false;
   /** Drops the outer panel border and padding. */
   bare = false;
+  /** BCP 47 locale for the studio and every tool. Defaults to the nearest `lang`. */
+  locale: string | undefined;
+  /** Translations or overrides, passed to every tool. */
+  messages: PixelshiftMessagesInput | undefined;
+
+  private readonly i18n = new LocaleController<PixelshiftMessages>(
+    this,
+    () =>
+      ({
+        common: commonMessages,
+        errors: errorMessages,
+        converter: converterMessages,
+        compressor: compressorMessages,
+        resizer: resizerMessages,
+        cropper: cropperMessages,
+        colorPicker: colorPickerMessages,
+        base64: base64Messages,
+        social: socialMessages,
+        youtube: youtubeMessages,
+        background: backgroundMessages,
+        studio: studioMessages,
+      }) satisfies PixelshiftMessages,
+  );
 
   private visited = new Set<StudioTool>();
   private sharedFiles: readonly File[] = [];
@@ -245,15 +274,54 @@ export class PixelshiftStudioElement extends LitElement {
     );
   }
 
+  /** Heading and description of a tool, in the studio's language. */
+  private describe(tool: StudioTool): { title: string; description: string } {
+    const t = this.i18n.messages;
+    const section = {
+      compress: t.compressor,
+      resize: t.resizer,
+      convert: t.converter,
+      crop: t.cropper,
+      colors: t.colorPicker,
+      base64: t.base64,
+      social: t.social,
+      background: t.background,
+    } as const;
+    if (tool === "youtube") {
+      const fmt = this.i18n.formatters;
+      return {
+        title: t.youtube.heading,
+        description: formatMessage(t.youtube.description, {
+          width: fmt.number(YOUTUBE_THUMBNAIL.width),
+          height: fmt.number(YOUTUBE_THUMBNAIL.height),
+          limit: fmt.bytes(YOUTUBE_THUMBNAIL.maxFileSize ?? 0),
+        }),
+      };
+    }
+    return {
+      title: section[tool].heading,
+      description: section[tool].description,
+    };
+  }
+
   private onTabKey(event: KeyboardEvent): void {
     const tools = this.availableTools;
     const index = tools.indexOf(this.currentTool);
+    // Tabs run right to left under RTL, so the arrows swap meaning.
+    const nav = event.currentTarget as HTMLElement;
+    const forward =
+      getComputedStyle(nav).direction === "rtl" ? "ArrowLeft" : "ArrowRight";
+    const backward = forward === "ArrowLeft" ? "ArrowRight" : "ArrowLeft";
     const next =
-      event.key === "ArrowRight"
+      event.key === forward
         ? tools[(index + 1) % tools.length]
-        : event.key === "ArrowLeft"
+        : event.key === backward
           ? tools[(index - 1 + tools.length) % tools.length]
-          : undefined;
+          : event.key === "Home"
+            ? tools[0]
+            : event.key === "End"
+              ? tools[tools.length - 1]
+              : undefined;
     if (!next) return;
     event.preventDefault();
     this.select(next);
@@ -266,18 +334,26 @@ export class PixelshiftStudioElement extends LitElement {
 
   render() {
     const current = this.currentTool;
-    const definition = TOOLS[current];
-    const props = { dark: this.isDarkMode, disabled: this.disabled };
+    const definition = this.describe(current);
+    const t = this.i18n.messages;
+    const props: ToolProps = {
+      dark: this.isDarkMode,
+      disabled: this.disabled,
+      locale: this.locale,
+      messages: this.messages,
+    };
 
     return html`
       <section
         part="panel"
         class=${this.bare ? ui.bare : `${ui.panel} !pt-2 sm:!pt-3`}
+        dir=${this.i18n.direction ?? nothing}
+        lang=${this.locale ?? nothing}
       >
         <nav
           class=${ui.tabs}
           role="tablist"
-          aria-label="Image tools"
+          aria-label=${t.studio.toolsLabel}
           @keydown=${this.onTabKey}
         >
           ${this.availableTools.map(
@@ -292,7 +368,7 @@ export class PixelshiftStudioElement extends LitElement {
                 tabindex=${tool === current ? "0" : "-1"}
                 @click=${() => this.select(tool)}
               >
-                ${TOOLS[tool].label}
+                ${t.studio.tabs[tool]}
               </button>`,
           )}
         </nav>
@@ -309,7 +385,7 @@ export class PixelshiftStudioElement extends LitElement {
               data-tool=${tool}
               ?hidden=${tool !== current}
             >
-              ${TOOLS[tool].render(props)}
+              ${TOOLS[tool](props)}
             </div>`,
         )}
       </section>

@@ -1,7 +1,6 @@
 import {
   EMBED_SNIPPET_FORMATS,
   createEmbedSnippets,
-  formatBytes,
   imageToBase64,
   type Base64Result,
   type EmbedSnippetFormat,
@@ -9,17 +8,37 @@ import {
 import { html, nothing, type PropertyDeclarations } from "lit";
 import { PixelshiftTool, register } from "./base.js";
 import { icon } from "./icons.js";
+import type { Base64Messages } from "./i18n.js";
 import { ui } from "./ui.js";
 
 export const IMAGE_TO_BASE64_TAG = "pixelshift-image-to-base64";
 
-const SNIPPET_LABELS: Record<EmbedSnippetFormat, string> = {
-  dataUrl: "Data URL",
-  base64: "Base64",
-  html: "HTML",
-  css: "CSS",
-  markdown: "Markdown",
-  json: "JSON",
+export const base64Messages: Base64Messages = {
+  heading: "Image to Base64",
+  description: "Encode images as Base64 data URLs for embedding in code.",
+  action: "Encode",
+  busy: "Encoding",
+  acceptFormats: "Any image, including SVG and ICO",
+  encodedSummary: "{type} · {from} → {to} encoded (+{percent})",
+  snippetFormat: "Snippet format",
+  snippets: {
+    dataUrl: "Data URL",
+    base64: "Base64",
+    html: "HTML",
+    css: "CSS",
+    markdown: "Markdown",
+    json: "JSON",
+  },
+  copySnippet: "Copy {format}",
+  copiedSnippet: "Copied {format}",
+  downloadText: "Download .txt",
+  altText: "Alt text",
+  largeWarning:
+    "Data URLs over 50 KB slow down the page that embeds them. Compress the image first if you can.",
+  moreCharacters: {
+    one: "… {count} more character",
+    other: "… {count} more characters",
+  },
 };
 
 /** Characters shown in the preview; copying and downloading use the full text. */
@@ -45,23 +64,17 @@ export class ImageToBase64Element extends PixelshiftTool<Base64Result> {
   alt: string | undefined;
   auto = true;
 
-  protected get defaultHeading() {
-    return "Image to Base64";
+  protected get messageDefaults() {
+    return { base64: base64Messages };
   }
-  protected get defaultDescription() {
-    return "Encode images as Base64 data URLs for embedding in code.";
-  }
-  protected get actionLabel() {
-    return "Encode";
-  }
-  protected get busyLabel() {
-    return "Encoding";
+  protected get toolMessages() {
+    return this.t.base64;
   }
   protected get accept() {
     return "image/*";
   }
   protected get acceptHint() {
-    return "Any image, including SVG and ICO";
+    return this.t.base64.acceptFormats;
   }
 
   protected processFile(file: File, signal: AbortSignal) {
@@ -77,15 +90,18 @@ export class ImageToBase64Element extends PixelshiftTool<Base64Result> {
       <div class=${ui.row}>
         <img class="${ui.thumb} checker" src=${this.urlFor(file)} alt="" />
         <div class="min-w-0 flex-1">
-          <p class=${ui.name}>${file.name}</p>
+          <p class=${ui.name}><bdi>${file.name}</bdi></p>
           <p class=${ui.meta}>
             ${result
-              ? html`${result.mimeType} · ${formatBytes(result.originalSize)} →
-                ${formatBytes(result.encodedSize)} encoded
-                (+${Math.round(
-                  (result.encodedSize / result.originalSize - 1) * 100,
-                )}%)`
-              : formatBytes(file.size)}
+              ? this.msg(this.t.base64.encodedSummary, {
+                  type: result.mimeType,
+                  from: this.fmt.bytes(result.originalSize),
+                  to: this.fmt.bytes(result.encodedSize),
+                  percent: this.fmt.percent(
+                    result.encodedSize / result.originalSize - 1,
+                  ),
+                })
+              : this.fmt.bytes(file.size)}
           </p>
         </div>
         ${result
@@ -99,7 +115,7 @@ export class ImageToBase64Element extends PixelshiftTool<Base64Result> {
               ${this.busy
                 ? html`<span class="spinner" aria-hidden="true"></span>`
                 : nothing}
-              ${this.actionLabel}
+              ${this.toolMessages.action}
             </button>`}
       </div>
       ${this.renderFailures()} ${result ? this.renderSnippets(result) : nothing}
@@ -113,11 +129,16 @@ export class ImageToBase64Element extends PixelshiftTool<Base64Result> {
       this.alt ? { alt: this.alt } : {},
     );
     const text = snippets[this.snippet];
+    const label = this.t.base64.snippets[this.snippet];
     const hidden = text.length - PREVIEW_LENGTH;
 
     return html`
       <div class="mt-4">
-        <div class=${ui.tabs} role="tablist" aria-label="Snippet format">
+        <div
+          class=${ui.tabs}
+          role="tablist"
+          aria-label=${this.t.base64.snippetFormat}
+        >
           ${EMBED_SNIPPET_FORMATS.map(
             (format) =>
               html`<button
@@ -127,18 +148,19 @@ export class ImageToBase64Element extends PixelshiftTool<Base64Result> {
                 aria-selected=${String(this.snippet === format)}
                 @click=${() => (this.snippet = format)}
               >
-                ${SNIPPET_LABELS[format]}
+                ${this.t.base64.snippets[format]}
               </button>`,
           )}
         </div>
         <pre
+          dir="ltr"
           class="m-0 mt-3 max-h-56 overflow-auto whitespace-pre-wrap break-all rounded-control border border-solid border-line bg-sunken p-3 ${ui.mono} leading-5 text-body"
           role="tabpanel"
         ><code>${hidden > 0
           ? text.slice(0, PREVIEW_LENGTH)
           : text}</code>${hidden > 0
-          ? html`<span class="text-muted"
-              >… ${hidden.toLocaleString()} more characters</span
+          ? html`<span class="text-muted" dir="auto"
+              >${this.plural(this.t.base64.moreCharacters, hidden)}</span
             >`
           : nothing}</pre>
         <div class="mt-3 flex flex-wrap items-center gap-2">
@@ -146,16 +168,20 @@ export class ImageToBase64Element extends PixelshiftTool<Base64Result> {
             class=${ui.primary}
             type="button"
             @click=${() =>
-              void this.copy(text, `Copied ${SNIPPET_LABELS[this.snippet]}`)}
+              void this.copy(
+                text,
+                this.msg(this.t.base64.copiedSnippet, { format: label }),
+              )}
           >
-            ${icon("copy")} Copy ${SNIPPET_LABELS[this.snippet]}
+            ${icon("copy")}
+            ${this.msg(this.t.base64.copySnippet, { format: label })}
           </button>
           <button
             class=${ui.secondary}
             type="button"
             @click=${() => this.download(text)}
           >
-            ${icon("download")} Download .txt
+            ${icon("download")} ${this.t.base64.downloadText}
           </button>
           <span class="text-[13px] text-muted" role="status" aria-live="polite"
             >${this.notice}</span
@@ -163,7 +189,7 @@ export class ImageToBase64Element extends PixelshiftTool<Base64Result> {
         </div>
         ${this.snippet === "html" || this.snippet === "markdown"
           ? html`<label class="${ui.label} mt-3 max-w-sm">
-              Alt text
+              ${this.t.base64.altText}
               <input
                 class=${ui.field}
                 type="text"
@@ -178,8 +204,7 @@ export class ImageToBase64Element extends PixelshiftTool<Base64Result> {
           : nothing}
         ${result.encodedSize > LARGE_EMBED
           ? html`<p class="m-0 mt-3 text-[13px] text-muted">
-              Data URLs over 50 KB slow down the page that embeds them. Compress
-              the image first if you can.
+              ${this.t.base64.largeWarning}
             </p>`
           : nothing}
       </div>

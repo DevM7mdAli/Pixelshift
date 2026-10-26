@@ -53,3 +53,9 @@ body {
 .dark .app-heading p {
   color: #b8b5a6;
 }
+
+.app-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}

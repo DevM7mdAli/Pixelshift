@@ -18,9 +18,25 @@ import {
 } from "lit";
 import { PixelshiftTool, register } from "./base.js";
 import { icon } from "./icons.js";
+import type { ColorPickerMessages } from "./i18n.js";
 import { ui } from "./ui.js";
 
 export const COLOR_PICKER_TAG = "pixelshift-color-picker";
+
+export const colorPickerMessages: ColorPickerMessages = {
+  heading: "Color picker",
+  description: "Extract colors from any image as HEX, RGB, or HSL.",
+  action: "Extract colors",
+  busy: "Reading colors",
+  colorFormat: "Color format",
+  imageLabel: "Image — click to pick a color",
+  clickToPick: "Click the image to pick a color.",
+  copyValue: "Copy {format} value",
+  palette: "Palette",
+  copyCss: "Copy as CSS variables",
+  copiedCss: "Copied CSS variables",
+  copyColor: "Copy {value}",
+};
 
 export interface ColorPickerResult {
   palette: PaletteColor[];
@@ -110,17 +126,11 @@ export class ColorPickerElement extends PixelshiftTool<ColorPickerResult> {
   private pixels: ImageData | undefined;
   private readonly painted = new WeakMap<HTMLCanvasElement, ImageData>();
 
-  protected get defaultHeading() {
-    return "Color picker";
+  protected get messageDefaults() {
+    return { colorPicker: colorPickerMessages };
   }
-  protected get defaultDescription() {
-    return "Extract colors from any image as HEX, RGB, or HSL.";
-  }
-  protected get actionLabel() {
-    return "Extract colors";
-  }
-  protected get busyLabel() {
-    return "Reading colors";
+  protected get toolMessages() {
+    return this.t.colorPicker;
   }
 
   /** The most recently picked color. */
@@ -205,13 +215,14 @@ export class ColorPickerElement extends PixelshiftTool<ColorPickerResult> {
           ${result && this.pixels
             ? html`<div
                 class="viewer"
+                dir="ltr"
                 @pointermove=${this.onPointerMove}
                 @pointerleave=${() => (this.hover = undefined)}
                 @click=${this.onClick}
               >
                 <canvas
                   class="image"
-                  aria-label="Image — click to pick a color"
+                  aria-label=${this.t.colorPicker.imageLabel}
                 ></canvas>
                 ${this.hover
                   ? html`<div
@@ -229,15 +240,19 @@ export class ColorPickerElement extends PixelshiftTool<ColorPickerResult> {
               ? html`<span
                   class="flex items-center gap-2 text-sm text-muted"
                   role="status"
-                  ><span class="spinner" aria-hidden="true"></span> Reading
-                  colors…</span
+                  ><span class="spinner" aria-hidden="true"></span> ${this.msg(
+                    this.t.common.busy,
+                    {
+                      label: this.toolMessages.busy,
+                    },
+                  )}</span
                 >`
               : html`<button
                   class=${ui.primary}
                   type="button"
                   @click=${() => void this.process()}
                 >
-                  ${this.actionLabel}
+                  ${this.toolMessages.action}
                 </button>`}
         </div>
         ${this.renderInspector()}
@@ -252,7 +267,11 @@ export class ColorPickerElement extends PixelshiftTool<ColorPickerResult> {
     const color = this.hover?.color ?? this.picked;
     return html`
       <div class="flex min-w-0 flex-col gap-3">
-        <div class=${ui.segmented} role="group" aria-label="Color format">
+        <div
+          class=${ui.segmented}
+          role="group"
+          aria-label=${this.t.colorPicker.colorFormat}
+        >
           ${COLOR_FORMATS.map(
             (format) =>
               html`<button
@@ -279,16 +298,20 @@ export class ColorPickerElement extends PixelshiftTool<ColorPickerResult> {
                       ${format.toUpperCase()}
                     </dt>
                     <dd class="m-0 min-w-0 flex-1 truncate ${ui.mono} text-ink">
-                      ${color[format]}
+                      <bdi dir="ltr">${color[format]}</bdi>
                     </dd>
                     <button
                       class=${ui.icon}
                       type="button"
-                      aria-label=${`Copy ${format.toUpperCase()} value`}
+                      aria-label=${this.msg(this.t.colorPicker.copyValue, {
+                        format: format.toUpperCase(),
+                      })}
                       @click=${() =>
                         void this.copy(
                           color[format],
-                          `Copied ${color[format]}`,
+                          this.msg(this.t.common.copiedValue, {
+                            value: color[format],
+                          }),
                         )}
                     >
                       ${icon("copy")}
@@ -298,7 +321,7 @@ export class ColorPickerElement extends PixelshiftTool<ColorPickerResult> {
               )}
             </dl>`
           : html`<p class="m-0 text-sm text-muted">
-              Click the image to pick a color.
+              ${this.t.colorPicker.clickToPick}
             </p>`}
         <p
           class="m-0 min-h-5 text-[13px] text-muted"
@@ -318,17 +341,19 @@ export class ColorPickerElement extends PixelshiftTool<ColorPickerResult> {
     return html`
       <div class="mt-5 border-0 border-t border-solid border-line pt-4">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 class="m-0 text-sm font-semibold text-ink">Palette</h3>
+          <h3 class="m-0 text-sm font-semibold text-ink">
+            ${this.t.colorPicker.palette}
+          </h3>
           <button
             class=${ui.small}
             type="button"
             @click=${() =>
               void this.copy(
                 `:root {\n${variables}\n}`,
-                "Copied CSS variables",
+                this.t.colorPicker.copiedCss,
               )}
           >
-            ${icon("copy")} Copy as CSS variables
+            ${icon("copy")} ${this.t.colorPicker.copyCss}
           </button>
         </div>
         <ul
@@ -338,25 +363,29 @@ export class ColorPickerElement extends PixelshiftTool<ColorPickerResult> {
             (color) => html`
               <li>
                 <button
-                  class="flex w-full flex-col overflow-hidden rounded-control border border-solid border-line bg-surface p-0 text-left transition-colors duration-150 hover:border-line-strong"
+                  class="flex w-full flex-col overflow-hidden rounded-control border border-solid border-line bg-surface p-0 text-start transition-colors duration-150 hover:border-line-strong"
                   type="button"
-                  title=${`Copy ${this.format(color)}`}
+                  title=${this.msg(this.t.colorPicker.copyColor, {
+                    value: this.format(color),
+                  })}
                   @click=${() => {
                     this.choose(color);
                     void this.copy(
                       this.format(color),
-                      `Copied ${this.format(color)}`,
+                      this.msg(this.t.common.copiedValue, {
+                        value: this.format(color),
+                      }),
                     );
                   }}
                 >
                   <span
                     class="flex h-14 w-full items-end p-1.5 text-[11px] font-medium tabular-nums"
                     style=${`background:${color.hex};color:${readableTextColor(color)}`}
-                    >${Math.round(color.population * 100)}%</span
+                    >${this.fmt.percent(color.population)}</span
                   >
                   <span
                     class="block w-full truncate px-2 py-1.5 ${ui.mono} text-ink"
-                    >${this.format(color)}</span
+                    ><bdi dir="ltr">${this.format(color)}</bdi></span
                   >
                 </button>
               </li>
@@ -422,7 +451,10 @@ export class ColorPickerElement extends PixelshiftTool<ColorPickerResult> {
     if (!point || !this.pixels) return;
     const color = getPixelColor(this.pixels, point.pixelX, point.pixelY);
     this.choose(color);
-    void this.copy(this.format(color), `Copied ${this.format(color)}`);
+    void this.copy(
+      this.format(color),
+      this.msg(this.t.common.copiedValue, { value: this.format(color) }),
+    );
   }
 }
 

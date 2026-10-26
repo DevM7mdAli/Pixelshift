@@ -21,7 +21,9 @@ The adapters contain no image logic. They map each framework's properties, event
 | Background remover        | `BackgroundRemover` | `BackgroundRemover` | `BackgroundRemoverComponent` · `<pixelshift-background-remover>` |
 | Studio                    | `PixelshiftStudio`  | `PixelshiftStudio`  | `PixelshiftStudioComponent` · `<pixelshift-studio>`              |
 
-Every component accepts the shared properties (`disabled`, `isDarkMode`, `bare`, `auto`, `heading`, `description`) plus its tool's own properties from [Tools](/docs/tools), written in camelCase.
+Every component accepts the shared properties (`disabled`, `isDarkMode`, `bare`, `auto`, `heading`, `description`, `locale`, `messages`) plus its tool's own properties from [Tools](/docs/tools), written in camelCase.
+
+Each adapter also re-exports `registerLocale`, `ar`, and `en` — see [Localization & RTL](/docs/i18n).
 
 In Angular, the tool components use the custom element's own tag as their selector: Angular creates the element itself and forwards inputs to it, so there is no wrapper node and the markup matches plain HTML. The converter keeps its original `<pixelshift-converter>` wrapper selector.
 

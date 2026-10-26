@@ -47,6 +47,8 @@ const toolMarkers = {
   background: "Background remover",
   studio: "Image tools",
 };
+/** A string only the Arabic catalog contains; translations ship only when imported. */
+const arabicCatalog = "ضاغط الصور";
 const otherTools = (keep) =>
   Object.entries(toolMarkers)
     .filter(([name]) => name !== keep)
@@ -113,16 +115,16 @@ const packages = [
         from: "packages/react",
         specifier: "pixelshift-web-core",
         imports: ["defineImageCompressor"],
-        mustDrop: otherTools("compressor"),
-        maxBytes: 83 * KB,
+        mustDrop: [...otherTools("compressor"), arabicCatalog],
+        maxBytes: 91 * KB,
       },
       {
         label: "every tool via /define",
         from: "packages/react",
         specifier: "pixelshift-web-core/define",
         imports: [],
-        mustDrop: [],
-        maxBytes: 160 * KB,
+        mustDrop: [arabicCatalog],
+        maxBytes: 175 * KB,
       },
     ],
   },
@@ -137,7 +139,7 @@ const packages = [
         imports: ["ImageConverter"],
         external: ["react", "react-dom"],
         mustDrop: otherTools("converter"),
-        maxBytes: 75 * KB,
+        maxBytes: 82 * KB,
       },
       {
         label: "studio with every tool, react external",
@@ -146,7 +148,7 @@ const packages = [
         imports: ["PixelshiftStudio"],
         external: ["react", "react-dom"],
         mustDrop: [],
-        maxBytes: 162 * KB,
+        maxBytes: 177 * KB,
       },
     ],
   },
@@ -161,7 +163,7 @@ const packages = [
         imports: ["ImageConverter"],
         external: ["vue"],
         mustDrop: otherTools("converter"),
-        maxBytes: 75 * KB,
+        maxBytes: 82 * KB,
       },
       {
         label: "studio with every tool, vue external",
@@ -170,7 +172,7 @@ const packages = [
         imports: ["PixelshiftStudio"],
         external: ["vue"],
         mustDrop: [],
-        maxBytes: 162 * KB,
+        maxBytes: 177 * KB,
       },
     ],
   },

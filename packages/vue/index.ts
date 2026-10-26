@@ -21,6 +21,7 @@ import {
   defineYouTubeThumbnail,
   type FitMode,
   type OutputFormat,
+  type PixelshiftMessagesInput,
   type PixelshiftTool,
   type Segmenter,
   type StudioTool,
@@ -53,6 +54,13 @@ const sharedProps = {
   auto: optional.boolean,
   heading: optional.string,
   description: optional.string,
+  /** BCP 47 locale; defaults to the nearest `lang` attribute. */
+  locale: optional.string,
+  /** Translations or overrides for this component. */
+  messages: {
+    type: Object as PropType<PixelshiftMessagesInput>,
+    default: undefined,
+  },
 };
 
 const sharedEvents = {
@@ -290,7 +298,10 @@ export const PixelshiftStudio = /* @__PURE__ */ wrap({
   events: { toolChange: "tool-change" },
 });
 
+export { ar, en, registerLocale, registeredLocales } from "pixelshift-web-core";
 export type {
+  PixelshiftMessages,
+  PixelshiftMessagesInput,
   BackgroundRemovalResult,
   Base64Result,
   ColorInfo,

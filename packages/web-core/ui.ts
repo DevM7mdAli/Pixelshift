@@ -17,7 +17,7 @@ export const ui = {
   field:
     "box-border h-9 w-full min-w-0 rounded-control border border-solid border-line-strong bg-field px-2.5 text-sm text-ink disabled:opacity-50",
   select:
-    "box-border h-9 w-full min-w-0 cursor-pointer appearance-none rounded-control border border-solid border-line-strong bg-field pl-2.5 pr-9 text-sm text-ink disabled:cursor-not-allowed disabled:opacity-50",
+    "box-border h-9 w-full min-w-0 cursor-pointer appearance-none rounded-control border border-solid border-line-strong bg-field ps-2.5 pe-9 text-sm text-ink disabled:cursor-not-allowed disabled:opacity-50",
   range: "box-border w-full min-w-0 disabled:opacity-50",
   check: "flex items-center gap-2 text-[13px] text-body",
   primary:
@@ -28,7 +28,7 @@ export const ui = {
     "inline-flex h-8 items-center justify-center gap-1.5 rounded-control border border-solid border-line-strong bg-transparent px-2.5 text-[13px] font-medium text-ink no-underline transition-colors duration-150 hover:bg-hover disabled:opacity-50",
   icon: "inline-flex size-8 shrink-0 items-center justify-center rounded-control border-0 bg-transparent p-0 text-muted transition-colors duration-150 hover:bg-hover hover:text-ink",
   segmented:
-    "scroll-x inline-flex max-w-full rounded-control border border-solid border-line-strong p-0.5",
+    "scroll-x inline-flex max-w-full justify-self-start rounded-control border border-solid border-line-strong p-0.5",
   segment:
     "h-7 shrink-0 whitespace-nowrap rounded-[6px] border-0 bg-transparent px-2.5 text-[13px] font-medium text-body transition-colors duration-150 hover:text-ink aria-pressed:bg-accent aria-pressed:text-accent-ink",
   tabs: "scroll-x flex gap-1 border-0 border-b border-solid border-line",

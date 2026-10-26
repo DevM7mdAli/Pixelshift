@@ -1,11 +1,11 @@
 import {
   OUTPUT_FORMATS,
-  formatBytes,
   supportsOutputFormat,
   type ImageResult,
   type OutputFormat,
 } from "pixelshift-core";
 import { html, nothing, type TemplateResult } from "lit";
+import { formatMessage, type CommonMessages, type Formatters } from "./i18n.js";
 import { icon } from "./icons.js";
 import { ui } from "./ui.js";
 
@@ -33,7 +33,7 @@ export function numberInput(options: {
       ${options.label}
       <span class="relative flex min-w-0">
         <input
-          class="${ui.field} ${options.suffix ? "pr-10" : ""}"
+          class="${ui.field} ${options.suffix ? "pe-10" : ""}"
           type="number"
           inputmode="numeric"
           min=${options.min ?? 1}
@@ -47,7 +47,7 @@ export function numberInput(options: {
         />
         ${options.suffix
           ? html`<span
-              class="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs text-muted"
+              class="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-xs text-muted"
               >${options.suffix}</span
             >`
           : nothing}
@@ -130,7 +130,7 @@ export function selectField<T extends string>(options: {
           )}
         </select>
         <span
-          class="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-muted"
+          class="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-muted"
           >${icon("chevron")}</span
         >
       </span>
@@ -150,15 +150,19 @@ export function formatOptions(): SelectOption<OutputFormat>[] {
 /** A format picker whose empty value means "keep the input's format". */
 export function formatSelect(options: {
   value: OutputFormat | undefined;
+  messages: Pick<CommonMessages, "outputFormat" | "sameAsOriginal">;
   disabled?: boolean;
   keepLabel?: string;
   onChange: (format: OutputFormat | undefined) => void;
 }): TemplateResult {
   return selectField<OutputFormat | "">({
-    label: "Output format",
+    label: options.messages.outputFormat,
     value: options.value ?? "",
     options: [
-      { value: "", label: options.keepLabel ?? "Same as original" },
+      {
+        value: "",
+        label: options.keepLabel ?? options.messages.sameAsOriginal,
+      },
       ...formatOptions(),
     ],
     ...(options.disabled === undefined ? {} : { disabled: options.disabled }),
@@ -171,19 +175,22 @@ export function positiveNumberOrUndefined(value: string): number | undefined {
   return Number.isFinite(number) && number > 0 ? number : undefined;
 }
 
-/** `"62% smaller"`, `"8% larger"`, or `"same size"`. */
+/** `"62% smaller"`, `"8% larger"`, or `"same size"`, in the element's language. */
 export function describeSavings(
   result: Pick<ImageResult, "originalSize" | "convertedSize">,
+  messages: Pick<CommonMessages, "smaller" | "larger" | "sameSize">,
+  fmt: Formatters,
 ): string {
   const ratio = 1 - result.convertedSize / result.originalSize;
-  if (Math.abs(ratio) < 0.005) return "same size";
-  return ratio > 0
-    ? `${Math.round(ratio * 100)}% smaller`
-    : `${Math.round(-ratio * 100)}% larger`;
+  if (Math.abs(ratio) < 0.005) return messages.sameSize;
+  return formatMessage(ratio > 0 ? messages.smaller : messages.larger, {
+    percent: fmt.percent(Math.abs(ratio)),
+  });
 }
 
-export function describeSize(result: ImageResult): string {
-  return `${result.width}×${result.height} · ${formatBytes(result.convertedSize)}`;
+/** `"1280×720 · 240 kB"` */
+export function describeSize(result: ImageResult, fmt: Formatters): string {
+  return `${fmt.dimensions(result.width, result.height)} · ${fmt.bytes(result.convertedSize)}`;
 }
 
 /** Parses a value like `"200kb"`, `"1.5 MB"`, or `204800` into bytes. */

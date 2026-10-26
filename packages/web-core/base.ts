@@ -1,7 +1,7 @@
 import {
   INPUT_ACCEPT,
+  ImageConversionError,
   createZip,
-  formatBytes,
   type ImageResult,
 } from "pixelshift-core";
 import {
@@ -14,6 +14,18 @@ import {
   type TemplateResult,
 } from "lit";
 import { TWStyles } from "./CSS/twlit.js";
+import {
+  LocaleController,
+  commonMessages,
+  errorMessages,
+  formatMessage,
+  selectPlural,
+  type Formatters,
+  type PixelshiftMessages,
+  type PixelshiftMessagesInput,
+  type Plural,
+  type ToolMessages,
+} from "./i18n.js";
 import { icon } from "./icons.js";
 import { themeStyles } from "./theme.js";
 import { ui } from "./ui.js";
@@ -38,6 +50,11 @@ type Renderable = TemplateResult | typeof nothing;
  * Reactive properties are declared in a static getter instead of decorators
  * so bundlers can tree-shake any tool a consumer never imports.
  *
+ * Every string comes from the message catalog (see `i18n.ts`), resolved for
+ * the element's `locale` or the nearest `lang` attribute. Layout uses logical
+ * properties, so the chrome mirrors under `dir="rtl"`; image-space controls
+ * (crop box, comparison slider) stay physical on purpose.
+ *
  * Events, all bubbling and composed:
  * - `files-selected` — `File[]`
  * - `process-start` — `File[]`
@@ -53,6 +70,8 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
       auto: { type: Boolean },
       heading: { type: String },
       description: { type: String },
+      locale: { type: String },
+      messages: { attribute: false },
       selected: { state: true },
       output: { state: true },
       failures: { state: true },
@@ -79,6 +98,10 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
   heading: string | undefined;
   /** Replaces the default subtitle. */
   description: string | undefined;
+  /** BCP 47 locale such as `"ar"`. Defaults to the nearest `lang` attribute. */
+  locale: string | undefined;
+  /** Translations or overrides for this element only. */
+  messages: PixelshiftMessagesInput | undefined;
 
   protected selected: File[] = [];
   protected output: TResult[] = [];
@@ -95,12 +118,24 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
   private readonly urls = new Map<Blob, string>();
   private readonly sources = new WeakMap<object, File>();
 
-  protected abstract get defaultHeading(): string;
-  protected abstract get defaultDescription(): string;
-  /** Verb on the action button, e.g. "Compress". */
-  protected abstract get actionLabel(): string;
-  /** Present participle while busy, e.g. "Compressing". */
-  protected abstract get busyLabel(): string;
+  protected readonly i18n = new LocaleController<PixelshiftMessages>(
+    this,
+    () =>
+      ({
+        common: commonMessages,
+        errors: errorMessages,
+        ...this.messageDefaults,
+      }) as PixelshiftMessages,
+  );
+
+  /**
+   * The English catalog sections this tool renders, e.g.
+   * `{ compressor: compressorMessages }`. Only these sections are bundled
+   * with the tool and looked up in registered translations.
+   */
+  protected abstract get messageDefaults(): Partial<PixelshiftMessages>;
+  /** Heading, description, and action labels for this tool. */
+  protected abstract get toolMessages(): ToolMessages;
   protected abstract processFile(
     file: File,
     signal: AbortSignal,
@@ -118,7 +153,45 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
 
   /** The formats line under the dropzone prompt. */
   protected get acceptHint(): string {
-    return "PNG, JPEG, WebP, GIF or BMP";
+    return this.t.common.acceptFormats;
+  }
+
+  /** The resolved message catalog for this element's locale. */
+  protected get t(): PixelshiftMessages {
+    return this.i18n.messages;
+  }
+
+  /** Number, percent, byte, and dimension formatting for the locale. */
+  protected get fmt(): Formatters {
+    return this.i18n.formatters;
+  }
+
+  /** Fills a message's `{placeholders}`. */
+  protected msg(
+    template: string,
+    values?: Record<string, string | number>,
+  ): string {
+    return formatMessage(template, values);
+  }
+
+  /** Picks the plural form for `count`; `{count}` is formatted for the locale. */
+  protected plural(
+    forms: Plural,
+    count: number,
+    values: Record<string, string | number> = {},
+  ): string {
+    return formatMessage(selectPlural(forms, count, this.i18n.locale), {
+      ...values,
+      count: this.fmt.number(count),
+    });
+  }
+
+  /** A localized message for a failure, keyed by the core's error code. */
+  protected errorText(error: unknown): string {
+    if (error instanceof ImageConversionError && error.code in this.t.errors) {
+      return this.t.errors[error.code];
+    }
+    return error instanceof Error ? error.message : this.t.common.genericError;
   }
 
   /** Stop at the first failure and discard partial results. */
@@ -293,12 +366,12 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
     this.noticeTimer = setTimeout(() => (this.notice = ""), 1800);
   }
 
-  protected async copy(text: string, label = "Copied"): Promise<void> {
+  protected async copy(text: string, label?: string): Promise<void> {
     try {
       await navigator.clipboard.writeText(text);
-      this.flash(label);
+      this.flash(label ?? this.t.common.copied);
     } catch {
-      this.flash("Copy failed — select the text and copy it manually");
+      this.flash(this.t.common.copyFailed);
     }
   }
 
@@ -311,6 +384,8 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
       <section
         part="panel"
         class=${this.bare ? ui.bare : ui.panel}
+        dir=${this.i18n.direction ?? nothing}
+        lang=${this.locale ?? nothing}
         @paste=${this.onPaste}
       >
         ${this.bare ? nothing : this.renderHeader()} ${this.renderBody()}
@@ -323,10 +398,10 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
       <header class="mb-4 flex items-start justify-between gap-3">
         <div class="min-w-0">
           <h2 part="heading" class=${ui.heading}>
-            ${this.heading ?? this.defaultHeading}
+            ${this.heading ?? this.toolMessages.heading}
           </h2>
           <p class=${ui.description}>
-            ${this.description ?? this.defaultDescription}
+            ${this.description ?? this.toolMessages.description}
           </p>
         </div>
         ${this.renderHeaderAside()}
@@ -356,7 +431,7 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
 
   protected renderDropzone(compact = this.selected.length > 0): Renderable {
     const multiple = this.allowsMultiple;
-    const noun = multiple ? "images" : "an image";
+    const common = this.t.common;
     return html`
       <label
         part="dropzone"
@@ -376,14 +451,18 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
         <span class="text-sm font-medium text-ink">
           ${compact
             ? multiple
-              ? "Add or replace images"
-              : "Choose a different image"
-            : html`Drop ${noun} here, or <u>browse</u>`}
+              ? common.addOrReplace
+              : common.chooseDifferent
+            : richText(multiple ? common.dropMultiple : common.dropSingle, {
+                browse: html`<u>${common.browse}</u>`,
+              })}
         </span>
         ${compact
           ? nothing
           : html`<span class="text-xs text-muted"
-              >${this.acceptHint} · or paste</span
+              >${this.msg(common.acceptLine, {
+                formats: this.acceptHint,
+              })}</span
             >`}
         <input
           class="sr-only"
@@ -402,7 +481,7 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
     return html`
       <ul
         class="m-0 mt-3 grid max-h-64 list-none gap-2 overflow-y-auto p-0"
-        aria-label="Selected files"
+        aria-label=${this.t.common.selectedFiles}
       >
         ${this.selected.map(
           (file, index) => html`
@@ -415,13 +494,15 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
                 decoding="async"
               />
               <div class="min-w-0 flex-1">
-                <p class=${ui.name}>${file.name}</p>
-                <p class=${ui.meta}>${formatBytes(file.size)}</p>
+                <p class=${ui.name}><bdi>${file.name}</bdi></p>
+                <p class=${ui.meta}>${this.fmt.bytes(file.size)}</p>
               </div>
               <button
                 class=${ui.icon}
                 type="button"
-                aria-label=${`Remove ${file.name}`}
+                aria-label=${this.msg(this.t.common.removeFile, {
+                  name: file.name,
+                })}
                 ?disabled=${this.locked}
                 @click=${() => this.removeFile(index)}
               >
@@ -436,7 +517,8 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
 
   protected renderActions(): Renderable {
     const count = this.selected.length;
-    const noun = count === 1 ? "image" : "images";
+    const common = this.t.common;
+    const { action, busy } = this.toolMessages;
     return html`
       <div class="mt-4 flex flex-wrap items-center gap-2">
         <button
@@ -448,12 +530,16 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
         >
           ${this.busy
             ? html`<span class="spinner" aria-hidden="true"></span> ${this
-                  .busyLabel}${this.progress && this.progress.total > 1
-                  ? ` ${this.progress.done + 1} of ${this.progress.total}`
-                  : ""}…`
+                  .progress && this.progress.total > 1
+                  ? this.msg(common.busyProgress, {
+                      label: busy,
+                      current: this.fmt.number(this.progress.done + 1),
+                      total: this.fmt.number(this.progress.total),
+                    })
+                  : this.msg(common.busy, { label: busy })}`
             : count > 1
-              ? `${this.actionLabel} ${count} ${noun}`
-              : this.actionLabel}
+              ? this.plural(common.actionWithCount, count, { action })
+              : action}
         </button>
         ${this.busy && count > 1
           ? html`<button
@@ -461,7 +547,7 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
               type="button"
               @click=${this.cancel}
             >
-              Cancel
+              ${common.cancel}
             </button>`
           : html`<button
               class=${ui.secondary}
@@ -470,7 +556,7 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
               (count === 0 && this.output.length === 0)}
               @click=${this.reset}
             >
-              Clear
+              ${common.clear}
             </button>`}
         <span class="text-[13px] text-muted" role="status" aria-live="polite"
           >${this.notice}</span
@@ -489,8 +575,10 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
               ${icon("alert")}
               <span class="min-w-0"
                 >${this.failures.length > 1 || this.selected.length > 1
-                  ? html`<strong class="font-semibold">${file.name}:</strong> `
-                  : nothing}${messageOf(error)}</span
+                  ? html`<strong class="font-semibold"
+                      ><bdi>${file.name}</bdi>:</strong
+                    > `
+                  : nothing}${this.errorText(error)}</span
               >
             </p>
           `,
@@ -517,7 +605,9 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
       <div class="mt-5 border-0 border-t border-solid border-line pt-4">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 class="m-0 text-sm font-semibold text-ink">
-            ${results.length === 1 ? "Result" : `${results.length} results`}
+            ${results.length === 1
+              ? this.t.common.result
+              : this.plural(this.t.common.results, results.length)}
           </h3>
           ${results.length > 1
             ? html`<button
@@ -525,7 +615,7 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
                 type="button"
                 @click=${() => this.downloadZip(results)}
               >
-                ${icon("archive")} Download all (.zip)
+                ${icon("archive")} ${this.t.common.downloadAll}
               </button>`
             : nothing}
         </div>
@@ -541,7 +631,7 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
                     decoding="async"
                   />
                   <div class="min-w-0 flex-1">
-                    <p class=${ui.name}>${result.file.name}</p>
+                    <p class=${ui.name}><bdi>${result.file.name}</bdi></p>
                     <p class=${ui.meta}>${describe(result)}</p>
                   </div>
                   ${options.actions?.(result) ?? nothing}
@@ -552,7 +642,7 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
                     download=${result.file.name}
                   >
                     ${icon("download")}<span class="max-sm:sr-only"
-                      >Download</span
+                      >${this.t.common.download}</span
                     >
                   </a>
                 </div>
@@ -565,7 +655,10 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
     `;
   }
 
-  /** A before/after slider over two image URLs. */
+  /**
+   * A before/after slider over two image URLs. It is pinned left-to-right:
+   * the halves map to the image itself, which never mirrors.
+   */
   protected renderCompare(
     before: string,
     after: string,
@@ -575,30 +668,42 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
       const input = event.currentTarget as HTMLInputElement;
       input.parentElement?.style.setProperty("--position", `${input.value}%`);
     };
+    const common = this.t.common;
     return html`
       <div
+        dir="ltr"
         class="compare h-64 rounded-control border border-solid border-line sm:h-80 ${options.checker
           ? "checker"
           : "bg-sunken"}"
       >
-        <img class="before" src=${before} alt="Original" draggable="false" />
-        <img class="after" src=${after} alt="Result" draggable="false" />
+        <img
+          class="before"
+          src=${before}
+          alt=${common.original}
+          draggable="false"
+        />
+        <img
+          class="after"
+          src=${after}
+          alt=${common.resultLabel}
+          draggable="false"
+        />
         <span class="divider"></span>
         <input
           type="range"
           min="0"
           max="100"
           value="50"
-          aria-label=${options.label ?? "Compare original and result"}
+          aria-label=${options.label ?? common.compareLabel}
           @input=${update}
         />
         <span
           class="pointer-events-none absolute left-2 top-2 rounded-[6px] bg-surface px-1.5 py-0.5 text-[11px] font-medium text-body"
-          >Original</span
+          >${common.original}</span
         >
         <span
           class="pointer-events-none absolute right-2 top-2 rounded-[6px] bg-surface px-1.5 py-0.5 text-[11px] font-medium text-body"
-          >Result</span
+          >${common.resultLabel}</span
         >
       </div>
     `;
@@ -669,8 +774,19 @@ export abstract class PixelshiftTool<TResult = ImageResult> extends LitElement {
   }
 }
 
-export function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : "Something went wrong.";
+/**
+ * Splits a message around `{name}` slots and drops templates into them, for
+ * messages that contain markup such as an underlined link.
+ */
+export function richText(
+  template: string,
+  slots: Record<string, TemplateResult>,
+): unknown[] {
+  return template
+    .split(/(\{\w+\})/)
+    .map((part) =>
+      /^\{\w+\}$/.test(part) ? (slots[part.slice(1, -1)] ?? part) : part,
+    );
 }
 
 /** Registers `element` under `tag` once; safe to call repeatedly and during SSR. */

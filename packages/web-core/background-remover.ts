@@ -1,5 +1,4 @@
 import {
-  formatBytes,
   getPixelColor,
   readImageData,
   removeBackground,
@@ -14,11 +13,37 @@ import {
   type PropertyValues,
 } from "lit";
 import { PixelshiftTool, register } from "./base.js";
-import { formatSelect, rangeInput } from "./fields.js";
+import { describeSize, formatSelect, rangeInput } from "./fields.js";
 import { icon } from "./icons.js";
+import type { BackgroundMessages } from "./i18n.js";
 import { ui } from "./ui.js";
 
 export const BACKGROUND_REMOVER_TAG = "pixelshift-background-remover";
+
+export const backgroundMessages: BackgroundMessages = {
+  heading: "Background remover",
+  description:
+    "Remove plain backgrounds from product photos, logos, and signatures.",
+  action: "Remove background",
+  busy: "Removing",
+  tolerance: "Tolerance",
+  softness: "Edge softness",
+  sharp: "Sharp",
+  backgroundColor: "Background color",
+  detected: "Detected from edges",
+  pick: "Pick",
+  auto: "Auto",
+  pickHint: "Click the background you want removed.",
+  pickAlt: "Pick a background color",
+  replaceWith: "Replace with",
+  transparency: "Transparency",
+  color: "Color",
+  fillColor: "Fill color",
+  keepFormat: "PNG (WebP stays WebP)",
+  contiguous: "Only remove background touching the edges",
+  removed: "{percent} removed",
+  compareLabel: "Compare original and cut-out",
+};
 
 /** Settings that re-run a single-image result while the user adjusts them. */
 const LIVE_SETTINGS = [
@@ -81,17 +106,11 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
   private samplePixels: ImageData | undefined;
   private liveTimer: ReturnType<typeof setTimeout> | undefined;
 
-  protected get defaultHeading() {
-    return "Background remover";
+  protected get messageDefaults() {
+    return { background: backgroundMessages };
   }
-  protected get defaultDescription() {
-    return "Remove plain backgrounds from product photos, logos, and signatures.";
-  }
-  protected get actionLabel() {
-    return "Remove background";
-  }
-  protected get busyLabel() {
-    return "Removing";
+  protected get toolMessages() {
+    return this.t.background;
   }
   protected get allowsMultiple() {
     return this.multiple;
@@ -166,16 +185,15 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
 
   protected renderSettings() {
     const file = this.selected[0];
+    const { common, background } = this.t;
     return html`
       ${this.picking && file
         ? html`<div class="mt-4 grid gap-2">
-            <p class="m-0 text-sm text-body">
-              Click the background you want removed.
-            </p>
+            <p class="m-0 text-sm text-body">${background.pickHint}</p>
             <img
               class="h-64 w-full cursor-crosshair rounded-control border border-solid border-line bg-sunken object-contain"
               src=${this.urlFor(file)}
-              alt="Pick a background color"
+              alt=${background.pickAlt}
               @click=${this.onPick}
             />
             <button
@@ -183,7 +201,7 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
               type="button"
               @click=${() => (this.picking = false)}
             >
-              Cancel
+              ${common.cancel}
             </button>
           </div>`
         : nothing}
@@ -191,9 +209,9 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
         ${this.segmenter
           ? nothing
           : rangeInput({
-              label: "Tolerance",
+              label: background.tolerance,
               value: this.tolerance,
-              display: String(this.tolerance),
+              display: this.fmt.number(this.tolerance),
               min: 0,
               max: 60,
               step: 1,
@@ -201,9 +219,11 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
               onInput: (value) => (this.tolerance = value),
             })}
         ${rangeInput({
-          label: "Edge softness",
+          label: background.softness,
           value: this.feather,
-          display: this.feather ? `${this.feather}px` : "Sharp",
+          display: this.feather
+            ? `${this.fmt.number(this.feather)} ${common.unitPixels}`
+            : background.sharp,
           min: 0,
           max: 6,
           step: 1,
@@ -213,7 +233,7 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
         ${this.segmenter
           ? nothing
           : html`<div class=${ui.label}>
-              Background color
+              ${background.backgroundColor}
               <div class="flex items-center gap-2">
                 <span
                   class="size-9 shrink-0 rounded-control border border-solid border-line-strong ${this
@@ -223,8 +243,10 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
                   style=${this.color ? `background:${this.color}` : ""}
                   aria-hidden="true"
                 ></span>
-                <span class="min-w-0 flex-1 truncate ${ui.mono} text-body"
-                  >${this.color ?? "Detected from edges"}</span
+                <span class="min-w-0 flex-1 truncate text-body"
+                  >${this.color
+                    ? html`<bdi class=${ui.mono} dir="ltr">${this.color}</bdi>`
+                    : background.detected}</span
                 >
                 <button
                   class=${ui.small}
@@ -232,7 +254,7 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
                   ?disabled=${this.locked || !file}
                   @click=${() => void this.startPicking()}
                 >
-                  ${icon("pipette")} Pick
+                  ${icon("pipette")} ${background.pick}
                 </button>
                 ${this.color
                   ? html`<button
@@ -240,18 +262,18 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
                       type="button"
                       @click=${() => (this.color = undefined)}
                     >
-                      Auto
+                      ${background.auto}
                     </button>`
                   : nothing}
               </div>
             </div>`}
         <div class=${ui.label}>
-          Replace with
+          ${background.replaceWith}
           <div class="flex items-center gap-2">
             <div
               class=${ui.segmented}
               role="group"
-              aria-label="Replace background with"
+              aria-label=${background.replaceWith}
             >
               <button
                 class=${ui.segment}
@@ -260,7 +282,7 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
                 ?disabled=${this.locked}
                 @click=${() => (this.background = undefined)}
               >
-                Transparency
+                ${background.transparency}
               </button>
               <button
                 class=${ui.segment}
@@ -269,14 +291,14 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
                 ?disabled=${this.locked}
                 @click=${() => (this.background ??= "#ffffff")}
               >
-                Color
+                ${background.color}
               </button>
             </div>
             ${this.background
               ? html`<input
                   class="h-9 w-12 shrink-0 cursor-pointer rounded-control border border-solid border-line-strong bg-field p-1"
                   type="color"
-                  aria-label="Fill color"
+                  aria-label=${background.fillColor}
                   .value=${this.background}
                   @input=${(event: Event) =>
                     (this.background = (
@@ -288,7 +310,8 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
         </div>
         ${formatSelect({
           value: this.format,
-          keepLabel: "PNG (WebP stays WebP)",
+          messages: common,
+          keepLabel: background.keepFormat,
           disabled: this.locked,
           onChange: (format) => (this.format = format),
         })}
@@ -304,7 +327,7 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
                     event.currentTarget as HTMLInputElement
                   ).checked)}
               />
-              Only remove background touching the edges
+              ${background.contiguous}
             </label>`}
       </div>
     `;
@@ -315,7 +338,10 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
       this.output,
       (result) => {
         const removal = result as BackgroundRemovalResult;
-        return `${removal.width}×${removal.height} · ${formatBytes(removal.convertedSize)} · ${Math.round(removal.removed * 100)}% removed`;
+        return `${describeSize(removal, this.fmt)} · ${this.msg(
+          this.t.background.removed,
+          { percent: this.fmt.percent(removal.removed) },
+        )}`;
       },
       {
         extra: (result) => {
@@ -326,7 +352,7 @@ export class BackgroundRemoverElement extends PixelshiftTool<BackgroundRemovalRe
                 this.urlFor(result.blob),
                 {
                   checker: true,
-                  label: "Compare original and cut-out",
+                  label: this.t.background.compareLabel,
                 },
               )
             : nothing;

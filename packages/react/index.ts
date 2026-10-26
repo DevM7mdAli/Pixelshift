@@ -159,6 +159,7 @@ export const PixelshiftStudio = /* @__PURE__ */ wrap(
   defineStudio,
 );
 
+export { ar, en, registerLocale, registeredLocales } from "pixelshift-web-core";
 export {
   BackgroundRemoverElement,
   ColorPickerElement,
@@ -182,6 +183,8 @@ export type {
   ImageResult,
   OutputFormat,
   PaletteColor,
+  PixelshiftMessages,
+  PixelshiftMessagesInput,
   Rect,
   Segmenter,
   SocialResizeResult,

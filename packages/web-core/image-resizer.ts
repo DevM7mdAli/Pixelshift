@@ -18,16 +18,34 @@ import {
   selectField,
 } from "./fields.js";
 import { icon } from "./icons.js";
+import type { ResizerMessages } from "./i18n.js";
 import { ui } from "./ui.js";
 
 export const IMAGE_RESIZER_TAG = "pixelshift-image-resizer";
 
-const FIT_LABELS: Record<FitMode, string> = {
-  cover: "Crop to fill",
-  contain: "Fit and pad",
-  fill: "Stretch",
-  inside: "Fit inside",
+export const resizerMessages: ResizerMessages = {
+  heading: "Image resizer",
+  description: "Resize images to exact dimensions or a percentage.",
+  action: "Resize",
+  busy: "Resizing",
+  resizeBy: "Resize by",
+  pixels: "Pixels",
+  percentage: "Percentage",
+  scale: "Scale",
+  width: "Width",
+  height: "Height",
+  keepAspectRatio: "Keep aspect ratio",
+  fit: "Fit",
+  fits: {
+    cover: "Crop to fill",
+    contain: "Fit and pad",
+    fill: "Stretch",
+    inside: "Fit inside",
+  },
+  noUpscale: "Don't enlarge smaller images",
 };
+
+const FIT_MODES: FitMode[] = ["cover", "contain", "fill", "inside"];
 
 /**
  * `<pixelshift-image-resizer>` — resizes to exact pixels or a percentage,
@@ -76,17 +94,11 @@ export class ImageResizerElement extends PixelshiftTool<ImageResult> {
   private sourceSize: Size | undefined;
   private lastEdited: "width" | "height" = "width";
 
-  protected get defaultHeading() {
-    return "Image resizer";
+  protected get messageDefaults() {
+    return { resizer: resizerMessages };
   }
-  protected get defaultDescription() {
-    return "Resize images to exact dimensions or a percentage.";
-  }
-  protected get actionLabel() {
-    return "Resize";
-  }
-  protected get busyLabel() {
-    return "Resizing";
+  protected get toolMessages() {
+    return this.t.resizer;
   }
   protected get allowsMultiple() {
     return this.multiple;
@@ -162,10 +174,15 @@ export class ImageResizerElement extends PixelshiftTool<ImageResult> {
       ? planResize(this.sourceSize, this.resizeOptions())
       : undefined;
 
+    const { common, resizer } = this.t;
     return html`
       <div class="${ui.section} grid gap-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class=${ui.segmented} role="group" aria-label="Resize by">
+          <div
+            class=${ui.segmented}
+            role="group"
+            aria-label=${resizer.resizeBy}
+          >
             ${(["px", "percent"] as const).map(
               (unit) =>
                 html`<button
@@ -175,28 +192,33 @@ export class ImageResizerElement extends PixelshiftTool<ImageResult> {
                   ?disabled=${this.locked}
                   @click=${() => (this.unit = unit)}
                 >
-                  ${unit === "px" ? "Pixels" : "Percentage"}
+                  ${unit === "px" ? resizer.pixels : resizer.percentage}
                 </button>`,
             )}
           </div>
           ${this.sourceSize
             ? html`<span class="text-xs tabular-nums text-muted"
-                >${this.sourceSize.width}×${this.sourceSize.height}
-                ${preview
-                  ? html`→
-                      <span class="text-ink"
-                        >${preview.width}×${preview.height}</span
-                      >`
-                  : nothing}</span
+                >${preview
+                  ? this.msg(common.sizeChange, {
+                      from: this.fmt.dimensions(
+                        this.sourceSize.width,
+                        this.sourceSize.height,
+                      ),
+                      to: this.fmt.dimensions(preview.width, preview.height),
+                    })
+                  : this.fmt.dimensions(
+                      this.sourceSize.width,
+                      this.sourceSize.height,
+                    )}</span
               >`
             : nothing}
         </div>
 
         ${this.unit === "percent"
           ? rangeInput({
-              label: "Scale",
+              label: resizer.scale,
               value: this.percent,
-              display: `${this.percent}%`,
+              display: this.fmt.percent(this.percent / 100),
               min: 5,
               max: 200,
               step: 5,
@@ -208,10 +230,10 @@ export class ImageResizerElement extends PixelshiftTool<ImageResult> {
                 class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2"
               >
                 ${numberInput({
-                  label: "Width",
+                  label: resizer.width,
                   value: this.width,
-                  placeholder: "Auto",
-                  suffix: "px",
+                  placeholder: common.placeholderAuto,
+                  suffix: common.unitPixels,
                   disabled: this.locked,
                   onInput: (value) => this.setDimension("width", value),
                 })}
@@ -219,18 +241,18 @@ export class ImageResizerElement extends PixelshiftTool<ImageResult> {
                   class="${ui.icon} mb-0.5 aria-pressed:text-ink"
                   type="button"
                   aria-pressed=${String(this.keepAspectRatio)}
-                  aria-label="Keep aspect ratio"
-                  title="Keep aspect ratio"
+                  aria-label=${resizer.keepAspectRatio}
+                  title=${resizer.keepAspectRatio}
                   ?disabled=${this.locked}
                   @click=${() => (this.keepAspectRatio = !this.keepAspectRatio)}
                 >
                   ${icon(this.keepAspectRatio ? "link" : "unlink")}
                 </button>
                 ${numberInput({
-                  label: "Height",
+                  label: resizer.height,
                   value: this.height,
-                  placeholder: "Auto",
-                  suffix: "px",
+                  placeholder: common.placeholderAuto,
+                  suffix: common.unitPixels,
                   disabled: this.locked,
                   onInput: (value) => this.setDimension("height", value),
                 })}
@@ -240,11 +262,11 @@ export class ImageResizerElement extends PixelshiftTool<ImageResult> {
         <div class=${ui.grid}>
           ${this.unit === "px" && !this.keepAspectRatio
             ? selectField({
-                label: "Fit",
+                label: resizer.fit,
                 value: this.fit,
-                options: (Object.keys(FIT_LABELS) as FitMode[]).map((fit) => ({
+                options: FIT_MODES.map((fit) => ({
                   value: fit,
-                  label: FIT_LABELS[fit],
+                  label: resizer.fits[fit],
                 })),
                 disabled: this.locked,
                 onChange: (fit) => (this.fit = fit),
@@ -252,6 +274,7 @@ export class ImageResizerElement extends PixelshiftTool<ImageResult> {
             : nothing}
           ${formatSelect({
             value: this.format,
+            messages: common,
             disabled: this.locked,
             onChange: (format) => (this.format = format),
           })}
@@ -265,7 +288,7 @@ export class ImageResizerElement extends PixelshiftTool<ImageResult> {
                   event.currentTarget as HTMLInputElement
                 ).checked)}
             />
-            Don't enlarge smaller images
+            ${resizer.noUpscale}
           </label>
         </div>
       </div>
@@ -273,10 +296,11 @@ export class ImageResizerElement extends PixelshiftTool<ImageResult> {
   }
 
   protected renderResults() {
-    return this.renderImageResults(
-      this.output,
-      (result) =>
-        `${result.originalWidth}×${result.originalHeight} → ${describeSize(result)}`,
+    return this.renderImageResults(this.output, (result) =>
+      this.msg(this.t.common.sizeChange, {
+        from: this.fmt.dimensions(result.originalWidth, result.originalHeight),
+        to: describeSize(result, this.fmt),
+      }),
     );
   }
 }

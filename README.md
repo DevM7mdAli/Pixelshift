@@ -24,6 +24,24 @@ Each tool is a function in `pixelshift-core` and an element in `pixelshift-web-c
 - PNG compression quantizes to an indexed palette (the pngquant/TinyPNG approach) and writes it with a built-in PNG encoder, because canvas only encodes truecolor PNGs.
 - The background remover keys out plain or gently graded backgrounds — product shots, logos, signatures, screenshots. For busy photos, pass a `segmenter` (any function returning a foreground mask, such as an ML model) and it is used instead.
 
+## Localization and RTL
+
+Every string the elements render comes from a typed catalog (`PixelshiftMessages` in `web-core/i18n.ts`). English ships with each element; Arabic ships as `ar` and is bundled only when imported.
+
+```ts
+import { ar, registerLocale } from "pixelshift-web-core";
+
+registerLocale("ar", ar);
+document.documentElement.lang = "ar";
+document.documentElement.dir = "rtl";
+```
+
+- Elements use their `locale` attribute, else the nearest `lang` attribute (crossing shadow roots), else English, and re-render when either changes.
+- Plurals follow CLDR categories, so Arabic's six forms translate naturally. Numbers, percentages, and sizes are formatted with `Intl`.
+- Core errors are shown by `ImageConversionError.code`, never as the core's English text.
+- The chrome uses logical CSS properties and mirrors under `dir="rtl"`. Controls that map onto the image — the crop box, the comparison slider, the color magnifier, the focus grid — stay left to right on purpose.
+- `messages` overrides any string on one element. Tests check that each catalog keeps every English placeholder.
+
 ## Prerequisites
 
 - **Node.js**: >=24.x
@@ -110,7 +128,7 @@ pnpm build && pnpm check:bundle
 
 It asserts that every bare import in `dist` is a declared dependency (catching both phantom dependencies and accidentally inlined ones), that multi-entry packages share their common chunk, and that each probe drops the symbols it never touched and stays inside its size budget. Budgets live at the top of [`tooling/scripts/check-bundle.mjs`](tooling/scripts/check-bundle.mjs); raise one deliberately, in the same commit as whatever grew it.
 
-Current headline numbers, as `check:bundle` reports them: a single `core` helper costs **0.13 kB**; one element (the converter, through the React adapter) reaches a consuming app at **~73 kB / 21.4 kB gzipped**, and the whole studio with all nine tools at **~159 kB / 42 kB gzipped**, `lit` included.
+Current headline numbers, as `check:bundle` reports them: a single `core` helper costs **0.13 kB**; one element (the converter, through the React adapter) reaches a consuming app at **~80 kB / 24 kB gzipped**, and the whole studio with all nine tools at **~174 kB / 46.5 kB gzipped**, `lit` and the English strings included. The Arabic catalog adds ~3.6 kB gzipped, and only when imported.
 
 ### Tree shaking per tool
 

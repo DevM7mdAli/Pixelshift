@@ -13,6 +13,7 @@ import type {
   ConversionResult,
   ImageConverterElement,
   OutputFormat,
+  PixelshiftMessagesInput,
 } from "pixelshift-web-core";
 
 @Component({
@@ -30,6 +31,8 @@ import type {
       [multiple]="multiple"
       [disabled]="disabled"
       [isDarkMode]="isDarkMode"
+      [locale]="locale"
+      [messages]="messages"
       (conversion-start)="conversionStart.emit()"
       (conversion-complete)="conversionComplete.emit($any($event).detail)"
       (conversion-error)="conversionError.emit($any($event).detail)"
@@ -45,6 +48,8 @@ export class ImageConverterComponent {
   @Input() multiple = false;
   @Input() disabled = false;
   @Input() isDarkMode = false;
+  @Input() locale?: string;
+  @Input() messages?: PixelshiftMessagesInput;
 
   @Output() readonly conversionStart = new EventEmitter<void>();
   @Output() readonly conversionComplete = new EventEmitter<

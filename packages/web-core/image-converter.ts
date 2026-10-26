@@ -1,6 +1,5 @@
 import {
   convertImage,
-  formatBytes,
   type ConversionResult,
   type OutputFormat,
 } from "pixelshift-core";
@@ -8,15 +7,24 @@ import { html, type PropertyDeclarations } from "lit";
 import { PixelshiftTool, register } from "./base.js";
 import {
   describeSavings,
+  describeSize,
   formatOptions,
   numberInput,
   positiveNumberOrUndefined,
   rangeInput,
   selectField,
 } from "./fields.js";
+import type { ToolMessages } from "./i18n.js";
 import { ui } from "./ui.js";
 
 export const IMAGE_CONVERTER_TAG = "pixelshift-image-converter";
+
+export const converterMessages: ToolMessages = {
+  heading: "Image converter",
+  description: "Convert images locally in your browser.",
+  action: "Convert",
+  busy: "Converting",
+};
 
 /**
  * `<pixelshift-image-converter>` — converts PNG, JPEG, WebP, GIF, and BMP to
@@ -44,17 +52,11 @@ export class ImageConverterElement extends PixelshiftTool<ConversionResult> {
   maxHeight: number | undefined;
   multiple = false;
 
-  protected get defaultHeading() {
-    return "Image converter";
+  protected get messageDefaults() {
+    return { converter: converterMessages };
   }
-  protected get defaultDescription() {
-    return "Convert images locally in your browser.";
-  }
-  protected get actionLabel() {
-    return "Convert";
-  }
-  protected get busyLabel() {
-    return "Converting";
+  protected get toolMessages() {
+    return this.t.converter;
   }
   protected get allowsMultiple() {
     return this.multiple;
@@ -94,22 +96,23 @@ export class ImageConverterElement extends PixelshiftTool<ConversionResult> {
   }
 
   protected renderSettings() {
+    const common = this.t.common;
     return html`
       <div class="${ui.section} ${ui.grid}">
         ${selectField({
-          label: "Output format",
+          label: common.outputFormat,
           value: this.format,
           options: formatOptions(),
           disabled: this.locked,
           onChange: (format) => (this.format = format),
         })}
         ${rangeInput({
-          label: "Quality",
+          label: common.quality,
           value: this.quality,
           display:
             this.format === "png"
-              ? "Lossless"
-              : `${Math.round(this.quality * 100)}%`,
+              ? common.lossless
+              : this.fmt.percent(this.quality),
           min: 0.1,
           max: 1,
           step: 0.05,
@@ -117,17 +120,17 @@ export class ImageConverterElement extends PixelshiftTool<ConversionResult> {
           onInput: (value) => (this.quality = value),
         })}
         ${numberInput({
-          label: "Maximum width",
+          label: common.maximumWidth,
           value: this.maxWidth,
-          placeholder: "Original",
+          placeholder: common.placeholderOriginal,
           disabled: this.locked,
           onInput: (value) =>
             (this.maxWidth = positiveNumberOrUndefined(value)),
         })}
         ${numberInput({
-          label: "Maximum height",
+          label: common.maximumHeight,
           value: this.maxHeight,
-          placeholder: "Original",
+          placeholder: common.placeholderOriginal,
           disabled: this.locked,
           onInput: (value) =>
             (this.maxHeight = positiveNumberOrUndefined(value)),
@@ -140,7 +143,7 @@ export class ImageConverterElement extends PixelshiftTool<ConversionResult> {
     return this.renderImageResults(
       this.output,
       (result) =>
-        `${result.width}×${result.height} · ${formatBytes(result.convertedSize)} · ${describeSavings(result)}`,
+        `${describeSize(result, this.fmt)} · ${describeSavings(result, this.t.common, this.fmt)}`,
     );
   }
 }

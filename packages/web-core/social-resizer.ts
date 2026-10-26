@@ -1,7 +1,6 @@
 import {
   SOCIAL_PLATFORMS,
   SOCIAL_PRESETS,
-  formatBytes,
   getSocialPreset,
   resizeForSocial,
   resolvePosition,
@@ -18,10 +17,42 @@ import {
   type TemplateResult,
 } from "lit";
 import { PixelshiftTool, register } from "./base.js";
-import { formatSelect, rangeInput } from "./fields.js";
+import { describeSize, formatSelect, rangeInput } from "./fields.js";
+import type { SocialMessages, ToolMessages } from "./i18n.js";
 import { ui } from "./ui.js";
 
 export const SOCIAL_RESIZER_TAG = "pixelshift-social-resizer";
+
+export const socialMessages: SocialMessages = {
+  heading: "Social media resizer",
+  description:
+    "Resize for Instagram, Facebook, X, YouTube, LinkedIn, Snapchat, and more.",
+  action: "Resize",
+  busy: "Resizing",
+  platform: "Platform",
+  size: "Size",
+  framing: "Framing",
+  fillFrame: "Fill frame",
+  fitInside: "Fit inside",
+  focus: "Focus",
+  positions: {
+    "top-left": "Top left",
+    top: "Top",
+    "top-right": "Top right",
+    left: "Left",
+    center: "Center",
+    right: "Right",
+    "bottom-left": "Bottom left",
+    bottom: "Bottom",
+    "bottom-right": "Bottom right",
+  },
+  background: "Background",
+  previewCaption: "Preview of the first image",
+  previewEmpty: "Add an image to preview the framing",
+  maxFileSize: "max {size}",
+  overLimit: "over the {limit} limit",
+  presets: {},
+};
 
 const POSITIONS: Position[] = [
   "top-left",
@@ -74,20 +105,22 @@ export class SocialResizerElement extends PixelshiftTool<SocialResizeResult> {
 
   private platform: SocialPlatform | undefined;
 
-  protected get defaultHeading() {
-    return "Social media resizer";
+  protected get messageDefaults() {
+    return { social: socialMessages };
   }
-  protected get defaultDescription() {
-    return "Resize for Instagram, Facebook, X, YouTube, LinkedIn, Snapchat, and more.";
-  }
-  protected get actionLabel() {
-    return "Resize";
-  }
-  protected get busyLabel() {
-    return "Resizing";
+  protected get toolMessages(): ToolMessages {
+    return this.t.social;
   }
   protected get allowsMultiple() {
     return this.multiple;
+  }
+
+  /** The preset's name in the element's language, or the core's English name. */
+  protected presetName(preset: SocialPreset): string {
+    return (
+      this.t.social.presets[preset.id as keyof SocialMessages["presets"]] ??
+      preset.name
+    );
   }
 
   protected get selectedPreset(): SocialPreset {
@@ -142,7 +175,11 @@ export class SocialResizerElement extends PixelshiftTool<SocialResizeResult> {
     return html`
       <div class="mt-4">
         ${platforms.length > 1
-          ? html`<div class=${ui.tabs} role="tablist" aria-label="Platform">
+          ? html`<div
+              class=${ui.tabs}
+              role="tablist"
+              aria-label=${this.t.social.platform}
+            >
               ${platforms.map(
                 (platform) =>
                   html`<button
@@ -160,7 +197,7 @@ export class SocialResizerElement extends PixelshiftTool<SocialResizeResult> {
         <div
           class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
           role="radiogroup"
-          aria-label="Size"
+          aria-label=${this.t.social.size}
         >
           ${presets.map((preset) => this.renderPresetOption(preset))}
         </div>
@@ -173,7 +210,7 @@ export class SocialResizerElement extends PixelshiftTool<SocialResizeResult> {
     const scale = 24 / Math.max(preset.width, preset.height);
     return html`
       <button
-        class="flex min-w-0 items-center gap-3 rounded-control border border-solid bg-transparent p-2.5 text-left transition-colors duration-150 hover:bg-hover ${selected
+        class="flex min-w-0 items-center gap-3 rounded-control border border-solid bg-transparent p-2.5 text-start transition-colors duration-150 hover:bg-hover ${selected
           ? "border-accent"
           : "border-line"}"
         type="button"
@@ -198,12 +235,16 @@ export class SocialResizerElement extends PixelshiftTool<SocialResizeResult> {
         </span>
         <span class="min-w-0">
           <span class="block truncate text-sm font-medium text-ink"
-            >${preset.name}</span
+            >${this.presetName(preset)}</span
           >
           <span class="block text-xs tabular-nums text-muted"
-            >${preset.width} ×
-            ${preset.height}${preset.maxFileSize
-              ? ` · max ${formatBytes(preset.maxFileSize)}`
+            >${this.fmt.dimensions(
+              preset.width,
+              preset.height,
+            )}${preset.maxFileSize
+              ? ` · ${this.msg(this.t.social.maxFileSize, {
+                  size: this.fmt.bytes(preset.maxFileSize),
+                })}`
               : ""}</span
           >
         </span>
@@ -231,29 +272,28 @@ export class SocialResizerElement extends PixelshiftTool<SocialResizeResult> {
               ? html`<img
                   class="block size-full"
                   src=${this.urlFor(file)}
-                  alt="Framing preview"
+                  alt=${this.t.social.previewCaption}
                   style=${`object-fit:${this.fit};object-position:${focus.x * 100}% ${focus.y * 100}%`}
                 />`
               : html`<span
                   class="absolute inset-0 flex items-center justify-center p-2 text-center text-xs text-muted"
-                  >${preset.width} × ${preset.height}</span
+                  >${this.fmt.dimensions(preset.width, preset.height)}</span
                 >`}
           </div>
         </div>
         <figcaption class="text-xs text-muted">
-          ${file
-            ? "Preview of the first image"
-            : "Add an image to preview the framing"}
+          ${file ? this.t.social.previewCaption : this.t.social.previewEmpty}
         </figcaption>
       </figure>
     `;
   }
 
   protected renderFraming() {
+    const social = this.t.social;
     return html`
       <div class=${ui.label}>
-        Framing
-        <div class=${ui.segmented} role="group" aria-label="Framing">
+        ${social.framing}
+        <div class=${ui.segmented} role="group" aria-label=${social.framing}>
           ${(["cover", "contain"] as const).map(
             (fit) =>
               html`<button
@@ -263,18 +303,19 @@ export class SocialResizerElement extends PixelshiftTool<SocialResizeResult> {
                 ?disabled=${this.locked}
                 @click=${() => (this.fit = fit)}
               >
-                ${fit === "cover" ? "Fill frame" : "Fit inside"}
+                ${fit === "cover" ? social.fillFrame : social.fitInside}
               </button>`,
           )}
         </div>
       </div>
       ${this.fit === "cover"
         ? html`<div class=${ui.label}>
-            Focus
+            ${social.focus}
             <div
               class="grid w-fit grid-cols-3 gap-1"
+              dir="ltr"
               role="group"
-              aria-label="Focus point"
+              aria-label=${social.focus}
             >
               ${POSITIONS.map(
                 (position) =>
@@ -284,7 +325,7 @@ export class SocialResizerElement extends PixelshiftTool<SocialResizeResult> {
                       ? "border-accent bg-accent"
                       : "border-line-strong bg-transparent hover:bg-hover"}"
                     type="button"
-                    aria-label=${position.replace("-", " ")}
+                    aria-label=${social.positions[position]}
                     aria-pressed=${String(this.position === position)}
                     ?disabled=${this.locked}
                     @click=${() => (this.position = position)}
@@ -293,7 +334,7 @@ export class SocialResizerElement extends PixelshiftTool<SocialResizeResult> {
             </div>
           </div>`
         : html`<label class=${ui.label}>
-            Background
+            ${social.background}
             <span class="flex items-center gap-2">
               <input
                 class="h-9 w-12 shrink-0 cursor-pointer rounded-control border border-solid border-line-strong bg-field p-1"
@@ -305,20 +346,23 @@ export class SocialResizerElement extends PixelshiftTool<SocialResizeResult> {
                     event.currentTarget as HTMLInputElement
                   ).value)}
               />
-              <span class="${ui.mono} text-body">${this.background}</span>
+              <bdi class="${ui.mono} text-body" dir="ltr"
+                >${this.background}</bdi
+              >
             </span>
           </label>`}
       ${formatSelect({
         value: this.format,
+        messages: this.t.common,
         disabled: this.locked,
         onChange: (format) => (this.format = format),
       })}
       ${this.format === "png"
         ? nothing
         : rangeInput({
-            label: "Quality",
+            label: this.t.common.quality,
             value: this.quality,
-            display: `${Math.round(this.quality * 100)}%`,
+            display: this.fmt.percent(this.quality),
             min: 0.5,
             max: 1,
             step: 0.01,
@@ -331,10 +375,12 @@ export class SocialResizerElement extends PixelshiftTool<SocialResizeResult> {
   protected renderResults() {
     return this.renderImageResults(this.output, (result) => {
       const social = result as SocialResizeResult;
-      return `${social.width}×${social.height} · ${formatBytes(social.convertedSize)}${
+      return `${describeSize(social, this.fmt)}${
         social.withinLimit
           ? ""
-          : ` · over the ${formatBytes(social.preset.maxFileSize ?? 0)} limit`
+          : ` · ${this.msg(this.t.social.overLimit, {
+              limit: this.fmt.bytes(social.preset.maxFileSize ?? 0),
+            })}`
       }`;
     });
   }

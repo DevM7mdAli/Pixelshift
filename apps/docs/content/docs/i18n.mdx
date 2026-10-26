@@ -1,0 +1,128 @@
+---
+title: Localization & RTL
+description: Translate every element, follow the page language, and lay out right to left.
+icon: Languages
+---
+
+Every string the elements render comes from a typed message catalog. English ships with each element; other languages are registered once and picked up automatically. Arabic is included.
+
+## How the language is chosen
+
+Each element resolves its locale in this order:
+
+1. Its own `locale` attribute or property, such as `locale="ar"`.
+2. The nearest `lang` attribute up the tree, crossing shadow roots — usually `<html lang="…">`.
+3. English.
+
+Catalogs fall back from region to language: `ar-SA` uses an `ar-SA` catalog if registered, then `ar`, then English for anything still missing. Elements re-render when a locale is registered or when any `lang` or `dir` attribute in the document changes, so switching the app's language at runtime needs no extra code.
+
+## Register a translation
+
+```ts
+import { ar, registerLocale } from "pixelshift-web-core";
+
+registerLocale("ar", ar);
+document.documentElement.lang = "ar";
+document.documentElement.dir = "rtl";
+```
+
+The adapters re-export the same API, so framework apps never import `pixelshift-web-core` directly:
+
+```tsx
+import { PixelshiftStudio, ar, registerLocale } from "pixelshift-react";
+
+registerLocale("ar", ar);
+
+export function Tools() {
+  return <PixelshiftStudio locale="ar" />;
+}
+```
+
+`pixelshift-vue` and `pixelshift-angular` export `registerLocale`, `ar`, and `en` too. Every component accepts `locale` and `messages`: `:locale="'ar'"` in Vue, `[locale]="'ar'"` in Angular.
+
+Catalogs are plain objects, so a bundler drops any you never import. Registering `ar` adds about 3.6 kB gzipped.
+
+## Override individual strings
+
+Pass any subset of the catalog through the `messages` property. It merges over the active language for that element only — useful for product wording, or for a language you have only partly translated:
+
+```ts
+const compressor = document.querySelector("pixelshift-image-compressor");
+compressor.messages = {
+  compressor: { heading: "Shrink your photos", action: "Shrink" },
+};
+```
+
+`registerLocale` merges too: calling it again for a locale adds to what is already registered.
+
+## Write a translation
+
+Start from `en`, the complete English catalog, and type yours as `PixelshiftMessages` so the compiler reports every missing key:
+
+```ts
+import { registerLocale, type PixelshiftMessages } from "pixelshift-web-core";
+
+export const fr: PixelshiftMessages = {
+  common: {
+    dropSingle: "Déposez une image ici, ou {browse}",
+    browse: "parcourez",
+    results: { one: "{count} résultat", other: "{count} résultats" },
+    sizeChange: "{from} → {to}",
+    // …every other key
+  },
+  // …every other section
+};
+
+registerLocale("fr", fr);
+```
+
+- **Placeholders** in braces, such as `{name}` or `{percent}`, are filled at render time. Keep each one; an unknown placeholder is shown as written.
+- **Plurals** are objects keyed by [CLDR plural category](https://cldr.unicode.org/index/cldr-spec/plural-rules): `zero`, `one`, `two`, `few`, `many`, and the required `other`. Provide the categories your language uses — Arabic uses all six, English only `one` and `other`.
+- **Arrows** that show a change, as in `sizeChange`, should point in reading direction: the Arabic catalog uses `{from} ← {to}`.
+- **Errors** are keyed by `ImageConversionError.code`, so the UI never shows the core's English error text.
+- **Social preset names** are optional under `social.presets`; any preset you leave out keeps its English name.
+
+The repository's tests check that the Arabic catalog keeps every English placeholder; copy that test when you add a language.
+
+## Numbers and sizes
+
+Percentages, byte sizes, dimensions, and counts are formatted with `Intl` for the active locale, including its digits: `ar-EG` shows Arabic-Indic digits, while `ar` follows current CLDR data and shows Latin digits. Sizes use binary multiples (1 kB = 1,024 bytes) with the locale's unit names.
+
+## Right-to-left layout
+
+Direction is inherited like any HTML element: set `dir="rtl"` on the page or on any ancestor. When you set `locale` on an element itself and give it no `dir`, the element applies the locale's direction on its own, so an Arabic widget on an English page still reads right to left.
+
+What mirrors under RTL:
+
+- The panel, tabs, toolbars, and form layout, built on logical CSS properties.
+- Field padding, unit suffixes, and the select chevron.
+- Slider direction, following the browser's native RTL behavior.
+- Keyboard navigation in the studio's tab bar: <kbd>←</kbd> moves forward, <kbd>→</kbd> back, <kbd>Home</kbd> and <kbd>End</kbd> jump to the ends.
+
+What stays left to right, because it maps onto the image rather than the reading direction:
+
+- The crop box and its arrow-key nudging.
+- The before/after comparison slider.
+- The color picker's magnifier.
+- The social resizer's focus grid, where "top left" means the image's top-left corner.
+
+File names are isolated with `<bdi>`, and code, color values, and Base64 output are always shown left to right.
+
+## Catalog sections
+
+| Section       | Used by                                               |
+| ------------- | ----------------------------------------------------- |
+| `common`      | Every element: dropzone, file list, actions, results  |
+| `errors`      | Every element, keyed by `ImageConversionError.code`   |
+| `converter`   | `<pixelshift-image-converter>`                        |
+| `compressor`  | `<pixelshift-image-compressor>`                       |
+| `resizer`     | `<pixelshift-image-resizer>`                          |
+| `cropper`     | `<pixelshift-image-cropper>`                          |
+| `colorPicker` | `<pixelshift-color-picker>`                           |
+| `base64`      | `<pixelshift-image-to-base64>`                        |
+| `social`      | `<pixelshift-social-resizer>` and the YouTube element |
+| `youtube`     | `<pixelshift-youtube-thumbnail>`                      |
+| `background`  | `<pixelshift-background-remover>`                     |
+| `studio`      | `<pixelshift-studio>` tab labels                      |
+
+Each element bundles only the English sections it renders and looks up only those sections in registered catalogs. The full key list, with a comment on every placeholder, is the `PixelshiftMessages` type in `pixelshift-web-core`.
