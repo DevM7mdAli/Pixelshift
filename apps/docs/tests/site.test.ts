@@ -120,6 +120,25 @@ describe("documentation site", () => {
     }
   });
 
+  it("links the repository and the coffee page from one place", () => {
+    const links = readFileSync(fromDocsRoot("lib/links.ts"), "utf8");
+    const page = readFileSync(fromDocsRoot("app/(home)/page.tsx"), "utf8");
+    const layout = readFileSync(fromDocsRoot("lib/layout.shared.tsx"), "utf8");
+    const docsLayout = readFileSync(
+      fromDocsRoot("app/docs/layout.tsx"),
+      "utf8",
+    );
+
+    expect(links).toContain("https://github.com/DevM7mdAli/Pixelshift");
+    expect(links).toContain("https://buymeacoffee.com/devm7mdali");
+    expect(layout).toContain("githubUrl: repositoryUrl");
+    expect(docsLayout).toContain("<SidebarSupport />");
+    expect(page).toContain("href={coffeeUrl}");
+    expect(page).toContain("href={repositoryUrl}");
+    // External links open in a new tab and say so to screen readers.
+    expect(page.match(/\(opens in a new tab\)/g)).toHaveLength(2);
+  });
+
   it("documents localization and right-to-left layout", () => {
     const i18n = readFileSync(fromDocsRoot("content/docs/i18n.mdx"), "utf8");
     const meta = readFileSync(fromDocsRoot("content/docs/meta.json"), "utf8");

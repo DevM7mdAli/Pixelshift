@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Braces,
   Check,
+  Coffee,
   Download,
   FileImage,
   Layers3,
@@ -11,8 +12,10 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
+import { GitHubMark } from "@/components/github-mark";
 import { StudioDemo } from "@/components/studio-demo";
 import { Float, Reveal } from "@/components/reveal";
+import { coffeeUrl, repositoryUrl } from "@/lib/links";
 
 const frameworks = ["Vanilla", "React", "Angular", "Vue"];
 const pipelineDotMotion = [
@@ -374,6 +377,58 @@ export default function LandingPage() {
             <span className="justify-self-end max-[700px]:justify-self-center">
               BUILT WITH LIT
             </span>
+          </div>
+        </Reveal>
+      </section>
+
+      <section
+        aria-labelledby="support-heading"
+        className={`${sectionWidth} pt-12 pb-16 max-[700px]:pt-8 max-[700px]:pb-12`}
+      >
+        <Reveal className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-6 border-t border-pixel-line pt-12 max-[980px]:grid-cols-[56px_1fr] max-[700px]:grid-cols-1 max-[700px]:pt-10">
+          <span
+            aria-hidden="true"
+            className="grid size-11.5 place-items-center rounded-full border border-pixel-ink"
+          >
+            <Coffee size={18} strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0">
+            <p className={`${overline} mb-[0.6rem] text-pixel-orange`}>
+              Support the project
+            </p>
+            <h2
+              className="m-0 max-w-160 font-pixel-serif text-[clamp(1.9rem,3.2vw,2.8rem)] leading-[1.05] font-normal tracking-[-0.045em]"
+              id="support-heading"
+            >
+              Free, open source, and fueled by coffee.
+            </h2>
+            <p className="mt-3 mb-0 max-w-150 text-[0.98rem] leading-[1.7] text-pixel-muted">
+              Pixelshift is MIT licensed and always will be. If it saved you an
+              upload server, a coffee keeps it maintained—and a star helps other
+              developers find it.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-[0.8rem] max-[980px]:col-start-2 max-[700px]:col-start-1 max-[430px]:grid max-[430px]:grid-cols-1">
+            <a
+              className={`${button} bg-pixel-lime text-pixel-mark shadow-[4px_4px_0] shadow-pixel-ink hover:shadow-[6px_6px_0]`}
+              href={coffeeUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <Coffee aria-hidden="true" size={17} />
+              Buy me a coffee
+              <span className="sr-only">(opens in a new tab)</span>
+            </a>
+            <a
+              className={`${button} bg-transparent text-pixel-ink hover:bg-pixel-paper-bright`}
+              href={repositoryUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <GitHubMark size={16} />
+              Star on GitHub
+              <span className="sr-only">(opens in a new tab)</span>
+            </a>
           </div>
         </Reveal>
       </section>

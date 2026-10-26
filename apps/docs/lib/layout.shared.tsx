@@ -1,10 +1,13 @@
 import { BookOpenText, Boxes, Play } from "lucide-react";
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
+import { repositoryUrl } from "@/lib/links";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export function baseOptions(): BaseLayoutProps {
   return {
+    // Adds fumadocs' own GitHub icon to the header and the docs sidebar.
+    githubUrl: repositoryUrl,
     nav: {
       title: (
         <span className="group inline-flex items-center gap-[0.6rem] font-[760] tracking-[-0.03em]">
