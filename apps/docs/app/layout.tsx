@@ -17,23 +17,27 @@ const socialImageUrl = new URL("opengraph-image", siteRoot).toString();
 export const metadata: Metadata = {
   metadataBase: siteRoot,
   title: {
-    default: "Pixelshift — Browser image conversion",
+    default: "Pixelshift — Browser image tools",
     template: "%s · Pixelshift",
   },
   description:
-    "A local-first image conversion component for Lit, React, Angular, Vue, and vanilla JavaScript.",
+    "Local-first image tools — compress, resize, convert, crop, pick colors, encode Base64, and remove backgrounds — for Lit, React, Angular, Vue, and vanilla JavaScript.",
   applicationName: "Pixelshift",
   keywords: [
     "image converter",
-    "image conversion",
-    "image compression",
-    "image optimization",
+    "image compressor",
+    "image resizer",
+    "image cropper",
+    "color picker",
+    "image to Base64",
+    "social media image resizer",
+    "YouTube thumbnail resizer",
+    "background remover",
     "WebP converter",
-    "PNG to JPEG",
-    "browser image conversion",
-    "React image converter",
-    "Angular image converter",
-    "Vue image converter",
+    "browser image tools",
+    "React image components",
+    "Angular image components",
+    "Vue image components",
   ],
   icons: {
     icon: [{ url: logoUrl, type: "image/svg+xml" }],
@@ -42,15 +46,15 @@ export const metadata: Metadata = {
     type: "website",
     url: siteUrl,
     siteName: "Pixelshift",
-    title: "Pixelshift — Browser image conversion",
+    title: "Pixelshift — Browser image tools",
     description:
-      "Convert images locally in the browser with one component for Lit, React, Angular, Vue, and vanilla JavaScript.",
+      "Compress, resize, convert, crop, and edit images locally in the browser, with components for Lit, React, Angular, Vue, and vanilla JavaScript.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pixelshift — Browser image conversion",
+    title: "Pixelshift — Browser image tools",
     description:
-      "Convert images locally in the browser with one component for every framework.",
+      "Compress, resize, convert, crop, and edit images locally in the browser, with components for every framework.",
     images: [socialImageUrl],
   },
 };

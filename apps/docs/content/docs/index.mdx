@@ -1,32 +1,37 @@
 ---
 title: Introduction
-description: Local-first image conversion for the web, with one Lit component and adapters for every major framework.
+description: Local-first image tools for the web — compress, resize, convert, crop, sample colors, encode Base64, and remove backgrounds in the browser.
 icon: BookOpenText
 ---
 
-Pixelshift converts images entirely in the browser. The repository separates its conversion engine, Lit interface, and framework adapters so applications share behavior without sharing framework code.
+Pixelshift is a set of image tools that run entirely in the browser. The repository separates its processing engine, Lit interface, and framework adapters so applications share behavior without sharing framework code.
 
 ## What it handles
 
-| Direction | Formats                                                      |
-| --------- | ------------------------------------------------------------ |
-| Input     | PNG, JPEG, WebP, GIF (first frame), BMP                      |
-| Output    | PNG, JPEG, WebP when the browser provides a matching encoder |
+| Tool                      | What it does                                                                     |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| Image compressor          | Shrinks JPEG, PNG, and WebP while keeping the format; can aim for a target size  |
+| Image resizer             | Exact pixels or a percentage, with an aspect lock and cover/contain/fill fitting |
+| Image converter           | PNG, JPEG, WebP, GIF (first frame), and BMP to PNG, JPEG, or WebP                |
+| Image cropper             | A draggable crop box with preset ratios or exact pixel values                    |
+| Color picker              | Dominant palette plus any pixel, as HEX, RGB, and HSL                            |
+| Image to Base64           | Data URLs with HTML, CSS, Markdown, and JSON snippets                            |
+| Social media resizer      | Profile, cover, post, and story sizes for eight platforms                        |
+| YouTube thumbnail resizer | 1280 × 720 under YouTube's 2 MB limit, previewed at feed sizes                   |
+| Background remover        | Removes plain backgrounds from product shots, logos, and signatures              |
 
-The Lit component supports JPEG/WebP output quality, maximum dimensions, and batch conversion. It also inherits the core engine's default 25 MiB input and 40-million-pixel safety limits.
-
-Use `pixelshift-core` directly when you need a custom JPEG background, an `AbortSignal`, or configurable byte and pixel limits.
+The studio puts every tool behind one tab bar. Each tool is also its own element, so you can embed only the ones you need. Inputs are limited to 25 MiB and 40 million pixels by default.
 
 ## Pick your integration
 
 - Use `pixelshift-web-core` for vanilla JavaScript or any environment that supports custom elements.
-- Use `pixelshift-react` for typed React events and properties.
+- Use `pixelshift-react` for typed React components, events, and refs.
 - Use `pixelshift-angular` for Angular inputs, outputs, and public methods.
 - Use `pixelshift-vue` for Vue props, emits, and exposed methods.
-- Use `pixelshift-core` when you need conversion logic without UI.
+- Use `pixelshift-core` when you need the processing functions without UI.
 
 ## Privacy by architecture
 
 Files are decoded with browser APIs and encoded through canvas. There is no upload endpoint in the library, so image bytes remain on the user's device.
 
-Continue with [Getting started](/docs/getting-started) or try the [live demo](/#demo).
+Continue with [Getting started](/docs/getting-started), browse the [tools](/docs/tools), or try the [live demo](/#demo).

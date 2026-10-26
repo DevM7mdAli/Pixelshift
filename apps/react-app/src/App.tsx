@@ -1,19 +1,18 @@
-import { ImageConverter, type ConversionResult } from "pixelshift-react";
+import { PixelshiftStudio } from "pixelshift-react";
 import { useState } from "react";
 
 export function App() {
-  const [convertedCount, setConvertedCount] = useState(0);
+  const [processedCount, setProcessedCount] = useState(0);
 
   return (
     <main className="app-shell">
       <header className="app-heading">
         <h1>React integration</h1>
-        <p>Converted in the current session: {convertedCount}</p>
+        <p>Processed in the current session: {processedCount}</p>
       </header>
-      <ImageConverter
-        multiple
-        onConversionComplete={(event) =>
-          setConvertedCount((event.detail as ConversionResult[]).length)
+      <PixelshiftStudio
+        onProcessComplete={(event) =>
+          setProcessedCount((count) => count + event.detail.length)
         }
       />
     </main>

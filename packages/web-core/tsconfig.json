@@ -7,6 +7,6 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["index.ts", "define.ts", "image-converter.ts", "CSS/twlit.ts"],
-  "exclude": ["dist", "*.test.ts"]
+  "include": ["*.ts", "CSS/twlit.ts"],
+  "exclude": ["dist", "*.test.ts", "vite.config.ts", "tailwind.config.cjs"]
 }

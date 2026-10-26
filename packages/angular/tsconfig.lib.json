@@ -10,5 +10,10 @@
     "compilationMode": "partial",
     "strictTemplates": true
   },
-  "files": ["public-api.ts", "image-converter.component.ts"]
+  "files": [
+    "public-api.ts",
+    "image-converter.component.ts",
+    "tool-host.ts",
+    "tools.component.ts"
+  ]
 }

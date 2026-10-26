@@ -29,6 +29,7 @@ import type {
       [maxHeight]="maxHeight"
       [multiple]="multiple"
       [disabled]="disabled"
+      [isDarkMode]="isDarkMode"
       (conversion-start)="conversionStart.emit()"
       (conversion-complete)="conversionComplete.emit($any($event).detail)"
       (conversion-error)="conversionError.emit($any($event).detail)"
@@ -43,6 +44,7 @@ export class ImageConverterComponent {
   @Input() maxHeight?: number;
   @Input() multiple = false;
   @Input() disabled = false;
+  @Input() isDarkMode = false;
 
   @Output() readonly conversionStart = new EventEmitter<void>();
   @Output() readonly conversionComplete = new EventEmitter<

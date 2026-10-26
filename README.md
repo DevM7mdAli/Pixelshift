@@ -1,12 +1,28 @@
 # Pixelshift
 
-Pixelshift is a browser image-conversion library with a Lit web component and thin React, Angular, and Vue wrappers. Files are converted locally and are never uploaded.
+Pixelshift is a browser image toolkit: a framework-free core, Lit web components, and thin React, Angular, and Vue wrappers. Every tool runs locally; files are never uploaded.
 
-## Supported formats
+## Tools
 
-- Input: PNG, JPEG, WebP, GIF (first frame), and BMP.
+Each tool is a function in `pixelshift-core` and an element in `pixelshift-web-core`, wrapped by every adapter.
+
+| Tool                      | Core function                                | Element                           |
+| ------------------------- | -------------------------------------------- | --------------------------------- |
+| Image compressor          | `compressImage`                              | `<pixelshift-image-compressor>`   |
+| Image resizer             | `resizeImage`                                | `<pixelshift-image-resizer>`      |
+| Image / WebP converter    | `convertImage`                               | `<pixelshift-image-converter>`    |
+| Image cropper             | `cropImage`                                  | `<pixelshift-image-cropper>`      |
+| Color picker              | `extractColors`, `getPixelColor`             | `<pixelshift-color-picker>`       |
+| Image to Base64           | `imageToBase64`, `createEmbedSnippets`       | `<pixelshift-image-to-base64>`    |
+| Social media resizer      | `resizeForSocial`, `SOCIAL_PRESETS`          | `<pixelshift-social-resizer>`     |
+| YouTube thumbnail resizer | `resizeForSocial(file, "youtube-thumbnail")` | `<pixelshift-youtube-thumbnail>`  |
+| Background remover        | `removeBackground`                           | `<pixelshift-background-remover>` |
+| All of the above, tabbed  | —                                            | `<pixelshift-studio>`             |
+
+- Input: PNG, JPEG, WebP, GIF (first frame), and BMP. Base64 also accepts SVG, AVIF, and ICO.
 - Output: PNG, JPEG, and WebP when supported by the browser.
-- Options: quality, maximum width, maximum height, JPEG background, batch conversion, and file-size limits.
+- PNG compression quantizes to an indexed palette (the pngquant/TinyPNG approach) and writes it with a built-in PNG encoder, because canvas only encodes truecolor PNGs.
+- The background remover keys out plain or gently graded backgrounds — product shots, logos, signatures, screenshots. For busy photos, pass a `segmenter` (any function returning a foreground mask, such as an ML model) and it is used instead.
 
 ## Prerequisites
 
@@ -42,8 +58,8 @@ apps/
 └── docs/         # Fumadocs landing page and documentation
 
 packages/
-├── core/         # Framework-independent conversion logic
-├── web-core/     # Main Lit component and Tailwind styles
+├── core/         # Framework-independent image operations
+├── web-core/     # Lit elements, shared tool base, and Tailwind styles
 ├── react/        # React adapter
 ├── angular/      # Angular adapter
 └── vue/          # Vue adapter
@@ -61,7 +77,11 @@ packages/
 
 ## Design
 
-`core` owns all conversion behavior. `web-core` owns the Lit interface and delegates conversions to `core`. Framework wrappers only translate properties, events, and public methods; they contain no conversion logic.
+`core` owns all image behavior. Every geometric operation — crop, resize, fit, format change — is planned as a single `drawImage` call by pure functions in `geometry.ts`, then executed by one decode → draw → encode pipeline in `pipeline.ts`. The pixel algorithms (median-cut quantization, the indexed PNG and ZIP writers, background masking, palette extraction) are pure functions over byte arrays, so they are unit-tested without a canvas.
+
+`web-core` owns the Lit interface and delegates work to `core`. Every tool extends `PixelshiftTool` in `base.ts`, which provides file intake (drop, browse, paste), batch processing with per-file errors and cancellation, result downloads (including a ZIP of all results), theming, and object-URL cleanup. Framework wrappers only translate properties, events, and public methods; they contain no image logic.
+
+Colors are CSS custom properties (`--pixelshift-accent`, `--pixelshift-surface`, …, defined in `web-core/theme.ts`), so consumers can restyle any element from outside its shadow root. Dark mode follows the `is-dark-mode` attribute.
 
 The `web-core` build runs Tailwind 3 and converts the generated CSS to a Lit stylesheet with `twlitme` before bundling. Generated `tailwind.css` and `twlit.ts` files are intentionally ignored.
 
@@ -77,7 +97,7 @@ The output is deliberately shaped for the consumer's bundler:
 - **Dependencies stay external.** Everything a package declares in `dependencies` or `peerDependencies` — including subpaths like `lit/decorators.js` — is left as a bare import, so no consumer ends up with two copies of `lit`, `react`, or `image-core`.
 - **One entry per exported subpath.** `web-core` builds `index` and `define` as separate entries whose shared code lands in a single chunk, so importing both paths never duplicates the element.
 - **`hoistTransitiveImports` is off.** Rollup otherwise pulls every transitive import up into the entry chunk, forcing consumers to load code they never reached.
-- **`sideEffects` is honest.** Every package is `"sideEffects": false` except `web-core`, which lists `./dist/define.js` — the one module that registers the custom element.
+- **`sideEffects` is honest.** Every package is `"sideEffects": false` except `web-core`, which lists `./dist/define.js` — the one module that registers the custom elements.
 - **Per-file declarations.** `vite-plugin-dts` emits `.d.ts` alongside `.d.ts.map` rather than rolling types into one file, so go-to-definition still lands on the original source.
 
 ### Verifying it
@@ -90,11 +110,17 @@ pnpm build && pnpm check:bundle
 
 It asserts that every bare import in `dist` is a declared dependency (catching both phantom dependencies and accidentally inlined ones), that multi-entry packages share their common chunk, and that each probe drops the symbols it never touched and stays inside its size budget. Budgets live at the top of [`tooling/scripts/check-bundle.mjs`](tooling/scripts/check-bundle.mjs); raise one deliberately, in the same commit as whatever grew it.
 
-Current headline numbers: importing a single `core` helper costs **0.13 kB** out of a 6.88 kB module, and the whole component reaches a consuming app at **~41.6 kB minified / 12.2 kB gzipped**, `lit` included.
+Current headline numbers, as `check:bundle` reports them: a single `core` helper costs **0.13 kB**; one element (the converter, through the React adapter) reaches a consuming app at **~73 kB / 21.4 kB gzipped**, and the whole studio with all nine tools at **~159 kB / 42 kB gzipped**, `lit` included.
 
-### Known limit
+### Tree shaking per tool
 
-`ImageConverterElement` cannot be tree-shaken away by a consumer that imports `web-core` without using it. esbuild lowers Lit's `@property`/`@state` decorators into top-level `__decorateClass(...)` calls, which Rollup cannot prove side-effect free. This is inherent to legacy decorators plus esbuild, and it does not matter in practice: the element is the package's entire payload. Do not spend time chasing it — the fix would be dropping decorators for a static `properties` block.
+Importing one tool never bundles the others:
+
+- **Elements declare reactive properties in a `static get properties()` block, not decorators.** esbuild lowers Lit's `@property`/`@state` decorators into top-level `__decorateClass(...)` calls that Rollup cannot prove side-effect free, which kept every decorated class alive. A static getter runs nothing at module evaluation.
+- **Adapters register lazily.** Each React and Vue component is created by a `/* @__PURE__ */` factory that registers its element, so a component the app never references is dropped and never defined. Angular components register in their constructor.
+- **Core module-level values are literals.** A top-level call such as `SOCIAL_PRESETS.find(...)` is enough to keep a module alive; `YOUTUBE_THUMBNAIL` is therefore a plain object.
+
+The probes above enforce all three: each single-tool probe fails if another tool's heading string appears in its bundle.
 
 ## Continuous integration
 

@@ -38,6 +38,20 @@ const KB = 1024;
  * probe resolves through the published `exports` map rather than a file path.
  * `external` lists framework peers a consuming app already ships.
  */
+/** Heading strings that only exist inside one tool's element. */
+const toolMarkers = {
+  converter: "Image converter",
+  compressor: "Image compressor",
+  cropper: "Image cropper",
+  colors: "Color picker",
+  background: "Background remover",
+  studio: "Image tools",
+};
+const otherTools = (keep) =>
+  Object.entries(toolMarkers)
+    .filter(([name]) => name !== keep)
+    .map(([, marker]) => marker);
+
 const packages = [
   {
     dir: "packages/core",
@@ -58,27 +72,57 @@ const packages = [
         maxBytes: 0.5 * KB,
       },
       {
-        label: "whole conversion API",
+        label: "whole conversion API, no other tools",
         from: "packages/web-core",
         specifier: "pixelshift-core",
         imports: ["convertImages", "supportsOutputFormat"],
-        mustDrop: [],
-        maxBytes: 5 * KB,
+        // PNG encoder, social presets, crop math, and Base64.
+        mustDrop: [
+          "CompressionStream",
+          "youtube-thumbnail",
+          "aspect ratio",
+          "btoa",
+        ],
+        maxBytes: 9 * KB,
+      },
+      {
+        label: "palette from raw pixels, no canvas",
+        from: "packages/web-core",
+        specifier: "pixelshift-core",
+        imports: ["extractPaletteFromPixels"],
+        mustDrop: ["createImageBitmap", "toBlob", "drawImage"],
+        maxBytes: 4 * KB,
+      },
+      {
+        label: "compressor with its PNG encoder",
+        from: "packages/web-core",
+        specifier: "pixelshift-core",
+        imports: ["compressImage"],
+        mustDrop: ["youtube-thumbnail", "btoa"],
+        maxBytes: 18 * KB,
       },
     ],
   },
   {
     dir: "packages/web-core",
-    // Both entries re-export the element; it must live in one shared chunk.
+    // Both entries re-export the elements; they must live in one shared chunk.
     sharedChunkEntries: ["dist/index.js", "dist/define.js"],
     probes: [
       {
-        label: "full component via /define",
+        label: "one tool, registered by hand",
+        from: "packages/react",
+        specifier: "pixelshift-web-core",
+        imports: ["defineImageCompressor"],
+        mustDrop: otherTools("compressor"),
+        maxBytes: 83 * KB,
+      },
+      {
+        label: "every tool via /define",
         from: "packages/react",
         specifier: "pixelshift-web-core/define",
         imports: [],
         mustDrop: [],
-        maxBytes: 49 * KB,
+        maxBytes: 160 * KB,
       },
     ],
   },
@@ -87,13 +131,22 @@ const packages = [
     sharedChunkEntries: [],
     probes: [
       {
-        label: "wrapper + component, react external",
+        label: "one component, react external",
         from: "apps/react-app",
         specifier: "pixelshift-react",
         imports: ["ImageConverter"],
         external: ["react", "react-dom"],
+        mustDrop: otherTools("converter"),
+        maxBytes: 75 * KB,
+      },
+      {
+        label: "studio with every tool, react external",
+        from: "apps/react-app",
+        specifier: "pixelshift-react",
+        imports: ["PixelshiftStudio"],
+        external: ["react", "react-dom"],
         mustDrop: [],
-        maxBytes: 51 * KB,
+        maxBytes: 162 * KB,
       },
     ],
   },
@@ -102,13 +155,22 @@ const packages = [
     sharedChunkEntries: [],
     probes: [
       {
-        label: "wrapper + component, vue external",
+        label: "one component, vue external",
         from: "apps/vue-app",
         specifier: "pixelshift-vue",
         imports: ["ImageConverter"],
         external: ["vue"],
+        mustDrop: otherTools("converter"),
+        maxBytes: 75 * KB,
+      },
+      {
+        label: "studio with every tool, vue external",
+        from: "apps/vue-app",
+        specifier: "pixelshift-vue",
+        imports: ["PixelshiftStudio"],
+        external: ["vue"],
         mustDrop: [],
-        maxBytes: 50 * KB,
+        maxBytes: 162 * KB,
       },
     ],
   },

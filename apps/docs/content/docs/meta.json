@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "getting-started",
+    "tools",
     "web-component",
     "frameworks",
     "api",

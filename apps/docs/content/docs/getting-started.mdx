@@ -1,6 +1,6 @@
 ---
 title: Getting started
-description: Install the React adapter and convert your first image.
+description: Install the React adapter and add the image tools to your app.
 icon: Rocket
 ---
 
@@ -16,34 +16,51 @@ For React:
 pnpm add pixelshift-react
 ```
 
-Render the typed component in your application:
+Render the studio to get every tool behind one tab bar:
 
 ```tsx
-import { ImageConverter, type ConversionResult } from "pixelshift-react";
+import { PixelshiftStudio } from "pixelshift-react";
 
-function handleComplete(event: CustomEvent<ConversionResult[]>) {
-  console.log(event.detail);
-}
-
-export function Upload() {
+export function Tools() {
   return (
-    <ImageConverter
-      format="webp"
-      quality={0.85}
-      maxWidth={2400}
-      maxHeight={2400}
-      multiple
-      onConversionComplete={handleComplete}
-      onConversionError={(event) => console.error(event.detail)}
+    <PixelshiftStudio
+      onProcessComplete={(event) => console.log(event.detail)}
+      onProcessError={(event) => console.error(event.detail.error)}
     />
   );
 }
 ```
 
-Each result contains the converted `Blob`, downloadable `File`, dimensions, MIME types, byte sizes, and conversion duration.
+Or render a single tool. Only the components you import are registered and bundled:
+
+```tsx
+import { ImageCompressor, type CompressionResult } from "pixelshift-react";
+
+function handleComplete(event: CustomEvent<CompressionResult[]>) {
+  for (const result of event.detail) {
+    console.log(
+      result.file.name,
+      `${Math.round(result.savings * 100)}% smaller`,
+    );
+  }
+}
+
+export function Upload() {
+  return (
+    <ImageCompressor
+      quality={0.75}
+      targetSize={200 * 1024}
+      multiple
+      onProcessComplete={handleComplete}
+    />
+  );
+}
+```
+
+Image results contain the processed `Blob`, a downloadable `File`, dimensions before and after, MIME types, byte sizes, and the processing time. Users can also download each result, or a whole batch as a ZIP file, from the element itself.
 
 ## Browser lifecycle
 
-Pixelshift can be imported by server-rendered applications, but conversion requires browser APIs. Render and call the component from client-side code after it has mounted.
+Pixelshift can be imported by server-rendered applications, but processing requires browser APIs. Render and call the components from client-side code after they have mounted.
 
-See [Framework adapters](/docs/frameworks) for complete React, Angular, and Vue examples. Repository contributors can continue with [Development](/docs/development).
+See [Tools](/docs/tools) for each tool's options and [Framework adapters](/docs/frameworks) for complete React, Angular, and Vue examples. Repository contributors can continue with [Development](/docs/development).

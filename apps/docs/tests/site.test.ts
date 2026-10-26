@@ -5,18 +5,20 @@ import { describe, expect, it } from "vitest";
 const fromDocsRoot = (path: string) => resolve(import.meta.dirname, "..", path);
 
 describe("documentation site", () => {
-  it("ships the live converter on the landing page", () => {
+  it("ships the live studio on the landing page", () => {
     const page = readFileSync(fromDocsRoot("app/(home)/page.tsx"), "utf8");
     const demo = readFileSync(
-      fromDocsRoot("components/converter-demo.tsx"),
+      fromDocsRoot("components/studio-demo.tsx"),
       "utf8",
     );
     const reveal = readFileSync(fromDocsRoot("components/reveal.tsx"), "utf8");
 
-    expect(page).toContain("<ConverterDemo />");
+    expect(page).toContain("<StudioDemo />");
     expect(page).toContain("<Float");
     expect(page).toContain("<Reveal");
-    expect(demo).toContain("<ImageConverter");
+    expect(demo).toContain("<PixelshiftStudio");
+    expect(demo).toContain("isDarkMode=");
+    expect(demo).toContain("onProcessComplete");
     expect(demo).toContain('import("pixelshift-react")');
     expect(page).toContain("max-[430px]:w-full");
     expect(page).toContain("max-[430px]:text-[2.35rem]");
@@ -62,12 +64,69 @@ describe("documentation site", () => {
     expect(api).toContain("AbortController");
   });
 
+  it("documents every tool element", () => {
+    const tools = readFileSync(fromDocsRoot("content/docs/tools.mdx"), "utf8");
+    const meta = JSON.parse(
+      readFileSync(fromDocsRoot("content/docs/meta.json"), "utf8"),
+    ) as { pages: string[] };
+    const tags = [
+      "pixelshift-image-compressor",
+      "pixelshift-image-resizer",
+      "pixelshift-image-converter",
+      "pixelshift-image-cropper",
+      "pixelshift-color-picker",
+      "pixelshift-image-to-base64",
+      "pixelshift-social-resizer",
+      "pixelshift-youtube-thumbnail",
+      "pixelshift-background-remover",
+      "pixelshift-studio",
+    ];
+
+    for (const tag of tags) {
+      expect(tools).toContain(`<${tag}`);
+    }
+    expect(tools).toContain("segmenter");
+    expect(meta.pages).toContain("tools");
+  });
+
+  it("documents the shared element surface and every core tool", () => {
+    const webComponent = readFileSync(
+      fromDocsRoot("content/docs/web-component.mdx"),
+      "utf8",
+    );
+    const api = readFileSync(fromDocsRoot("content/docs/api.mdx"), "utf8");
+
+    for (const member of [
+      "loadFiles",
+      "process-complete",
+      "process-error",
+      "--pixelshift-accent",
+      "::part(",
+      "defineImageCompressor",
+    ]) {
+      expect(webComponent).toContain(member);
+    }
+    for (const fn of [
+      "compressImage",
+      "resizeImage",
+      "cropImage",
+      "extractColors",
+      "imageToBase64",
+      "resizeForSocial",
+      "removeBackground",
+      "createZip",
+    ]) {
+      expect(api).toContain(`${fn}(`);
+    }
+  });
+
   it("shows meaningful icons in docs navigation", () => {
     const source = readFileSync(fromDocsRoot("lib/source.ts"), "utf8");
     const layout = readFileSync(fromDocsRoot("lib/layout.shared.tsx"), "utf8");
     const pages = [
       ["index.mdx", "BookOpenText"],
       ["getting-started.mdx", "Rocket"],
+      ["tools.mdx", "LayoutGrid"],
       ["web-component.mdx", "Box"],
       ["frameworks.mdx", "Blocks"],
       ["api.mdx", "Braces"],

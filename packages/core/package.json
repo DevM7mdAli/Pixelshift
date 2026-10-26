@@ -1,7 +1,7 @@
 {
   "name": "pixelshift-core",
   "version": "0.1.0",
-  "description": "Pixelshift browser image conversion logic shared by every framework adapter.",
+  "description": "Pixelshift's framework-free browser image toolkit: convert, compress, resize, crop, extract colors, encode Base64, fit social sizes, and remove backgrounds.",
   "type": "module",
   "files": [
     "dist"
@@ -34,7 +34,15 @@
     "webp",
     "gif",
     "bmp",
-    "typescript"
+    "typescript",
+    "image compressor",
+    "image resizer",
+    "image cropper",
+    "color picker",
+    "base64",
+    "background remover",
+    "social media",
+    "youtube thumbnail"
   ],
   "author": "Mohammed Alajmi",
   "devDependencies": {

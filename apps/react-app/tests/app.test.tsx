@@ -10,6 +10,6 @@ describe("react app", () => {
     );
     const { container } = render(<App />);
     expect(screen.getByText("React integration")).toBeTruthy();
-    expect(container.querySelector("pixelshift-image-converter")).toBeTruthy();
+    expect(container.querySelector("pixelshift-studio")).toBeTruthy();
   });
 });

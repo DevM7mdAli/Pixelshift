@@ -1,7 +1,7 @@
 {
   "name": "pixelshift-web-core",
   "version": "0.1.0",
-  "description": "Pixelshift's accessible Lit image converter web component.",
+  "description": "Pixelshift's accessible Lit web components for compressing, resizing, converting, and cropping images, picking colors, Base64, social sizes, and background removal.",
   "type": "module",
   "files": [
     "dist"
@@ -48,7 +48,15 @@
     "webp",
     "jpeg",
     "png",
-    "browser"
+    "browser",
+    "image compressor",
+    "image resizer",
+    "image cropper",
+    "color picker",
+    "base64",
+    "background remover",
+    "social media",
+    "youtube thumbnail"
   ],
   "devDependencies": {
     "jsdom": "^28.0.0",

@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import { AppComponent } from "../src/app.component.js";
 
 describe("angular app", () => {
-  it("updates its wrapper result state", () => {
+  it("counts processed results", () => {
     const app = new AppComponent();
+    app.onComplete([{}, {}]);
     app.onComplete([]);
-    expect(app.convertedCount).toBe(0);
+    expect(app.processedCount()).toBe(2);
   });
 });

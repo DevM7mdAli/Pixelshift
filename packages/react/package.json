@@ -1,7 +1,7 @@
 {
   "name": "pixelshift-react",
   "version": "0.1.0",
-  "description": "React image converter component for local browser PNG, JPEG, and WebP conversion.",
+  "description": "React components for Pixelshift's local browser image tools: compress, resize, convert, crop, colors, Base64, social sizes, and background removal.",
   "type": "module",
   "files": [
     "dist"
@@ -36,7 +36,15 @@
     "webp",
     "jpeg",
     "png",
-    "browser"
+    "browser",
+    "image compressor",
+    "image resizer",
+    "image cropper",
+    "color picker",
+    "base64",
+    "background remover",
+    "social media",
+    "youtube thumbnail"
   ],
   "peerDependencies": {
     "react": ">=16.0.0",

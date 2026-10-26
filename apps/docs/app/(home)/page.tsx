@@ -11,7 +11,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { ConverterDemo } from "@/components/converter-demo";
+import { StudioDemo } from "@/components/studio-demo";
 import { Float, Reveal } from "@/components/reveal";
 
 const frameworks = ["Vanilla", "React", "Angular", "Vue"];
@@ -59,16 +59,16 @@ export default function LandingPage() {
             </em>
           </h1>
           <p className="mt-[2.4rem] max-w-152.5 text-[clamp(1.05rem,1.6vw,1.28rem)] leading-[1.62] tracking-[-0.02em]">
-            A small, framework-friendly image converter that turns PNG, JPEG,
-            WebP, GIF, and BMP files into production-ready assets—without an
-            upload server.
+            Compress, resize, convert, and crop images, pick colors, encode
+            Base64, size for social media, and remove backgrounds—all in the
+            browser, without an upload server.
           </p>
           <div className="mt-[2.1rem] flex flex-wrap gap-[0.8rem] max-[430px]:grid max-[430px]:grid-cols-1">
             <a
               className={`${button} bg-pixel-lime text-pixel-mark shadow-[4px_4px_0] shadow-pixel-ink hover:shadow-[6px_6px_0]`}
               href="#demo"
             >
-              Try the component
+              Try the tools
               <ArrowRight
                 className="transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
                 size={17}
@@ -101,7 +101,7 @@ export default function LandingPage() {
           <div
             className={`${overline} flex justify-between gap-4 border-b border-white/15 px-[1.7rem] py-6 text-white/62 max-[430px]:px-4 max-[430px]:py-5 max-[430px]:text-[0.62rem]`}
           >
-            <span>CONVERSION PIPELINE</span>
+            <span>PROCESSING PIPELINE</span>
             <span>v0.1</span>
           </div>
           <Float
@@ -208,13 +208,13 @@ export default function LandingPage() {
             </h2>
           </div>
           <p className="mt-[2.1rem] text-[0.98rem] leading-[1.7] text-pixel-muted max-[980px]:col-start-2 max-[980px]:mt-0 max-[700px]:col-start-1">
-            This is the React wrapper running in the page. Choose a format,
-            resize if needed, and download the result. Nothing is sent to a
-            backend.
+            This is the React studio running in the page. Pick a tool—compress,
+            resize, crop, sample colors, remove a background—and download the
+            result. Nothing is sent to a backend.
           </p>
         </Reveal>
         <Reveal delay={120}>
-          <ConverterDemo />
+          <StudioDemo />
         </Reveal>
       </section>
 
@@ -245,8 +245,8 @@ export default function LandingPage() {
               <span className={`${overline} ${featureIndex}`}>A / 01</span>
               <h3 className={featureTitle}>Logic once. Adapters only.</h3>
               <p className={`${featureCopy} text-pixel-mark/75`}>
-                Conversion lives in the framework-free core. Lit owns the UI;
-                React, Angular, and Vue simply translate their native APIs.
+                Image processing lives in the framework-free core. Lit owns the
+                UI; React, Angular, and Vue simply translate their native APIs.
               </p>
               <div className="mt-10 flex items-center gap-[0.8rem] font-pixel-mono text-[0.73rem] max-[700px]:flex-wrap max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-2">
                 <span className="border border-pixel-mark bg-white/40 px-3 py-[0.55rem]">
@@ -274,7 +274,7 @@ export default function LandingPage() {
               <span className={`${overline} ${featureIndex}`}>A / 02</span>
               <h3 className={featureTitle}>Zero round trips</h3>
               <p className={`${featureCopy} text-pixel-mark-inverse/75`}>
-                Canvas encoding keeps conversion quick, private, and
+                Canvas encoding keeps every tool quick, private, and
                 offline-ready.
               </p>
             </Reveal>
@@ -304,7 +304,8 @@ export default function LandingPage() {
               <span className={`${overline} ${featureIndex}`}>A / 04</span>
               <h3 className={featureTitle}>A two-line integration</h3>
               <p className={`${featureCopy} text-pixel-muted`}>
-                Import once, then render a typed component in your React app.
+                Import once, then render one tool or the whole studio in your
+                React app. Only what you import is bundled.
               </p>
             </Reveal>
             <Reveal className="min-w-0" delay={120}>
@@ -314,11 +315,11 @@ export default function LandingPage() {
               >
                 <code>
                   <span className="text-pixel-lime">import</span>{" "}
-                  {`{ ImageConverter }`}{" "}
+                  {`{ PixelshiftStudio }`}{" "}
                   <span className="text-pixel-lime">from</span>{" "}
                   &quot;pixelshift-react&quot;;
                   {"\n\n"}
-                  &lt;ImageConverter format=&quot;webp&quot; multiple /&gt;
+                  &lt;PixelshiftStudio tools=&quot;compress,crop&quot; /&gt;
                 </code>
               </pre>
             </Reveal>
@@ -345,7 +346,7 @@ export default function LandingPage() {
             Your images, your browser
           </p>
           <h2 className="mx-auto max-w-225 font-pixel-serif text-[clamp(3rem,6.5vw,6.7rem)] leading-[0.98] font-normal tracking-[-0.055em] max-[430px]:text-[2.35rem] max-[430px]:leading-none">
-            Ship image conversion without shipping a server.
+            Ship image tools without shipping a server.
           </h2>
           <div className="mt-[2.1rem] flex flex-wrap justify-center gap-[0.8rem] max-[430px]:grid max-[430px]:grid-cols-1">
             <Link

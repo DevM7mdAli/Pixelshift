@@ -1,0 +1,65 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vanila",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "apps/vanila", "exec", "vite", "--port", "4100"],
+      "port": 4100
+    },
+    {
+      "name": "docs",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "apps/docs",
+        "exec",
+        "next",
+        "dev",
+        "-p",
+        "4000"
+      ],
+      "port": 4000
+    },
+    {
+      "name": "angular-app",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "apps/angular-app",
+        "exec",
+        "ng",
+        "serve",
+        "--port",
+        "4300"
+      ],
+      "port": 4300
+    },
+    {
+      "name": "react-app",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "apps/react-app",
+        "exec",
+        "vite",
+        "--port",
+        "4200"
+      ],
+      "port": 4200
+    },
+    {
+      "name": "vue-app",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "apps/vue-app",
+        "exec",
+        "vite",
+        "--port",
+        "4400"
+      ],
+      "port": 4400
+    }
+  ]
+}

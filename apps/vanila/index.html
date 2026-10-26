@@ -3,15 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vanilla image converter</title>
+    <title>Vanilla image tools</title>
   </head>
   <body>
     <main class="app-shell">
       <header class="app-heading">
         <h1>Vanilla integration</h1>
-        <p>The Lit custom element consumed without a framework.</p>
+        <p>The Lit custom elements consumed without a framework.</p>
+        <label class="app-toggle">
+          <input id="dark-mode" type="checkbox" /> Dark mode
+        </label>
       </header>
-      <pixelshift-image-converter multiple></pixelshift-image-converter>
+      <pixelshift-studio></pixelshift-studio>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

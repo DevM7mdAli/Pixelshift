@@ -1,32 +1,53 @@
 ---
 title: Framework adapters
-description: Use the same converter through idiomatic React, Angular, and Vue APIs.
+description: Use every Pixelshift tool through idiomatic React, Angular, and Vue APIs.
 icon: Blocks
 ---
 
-The adapters contain no conversion logic. They map native framework properties and events to the Lit element, keeping behavior consistent across applications.
+The adapters contain no image logic. They map each framework's properties, events, and refs onto the custom elements, so a tool behaves the same everywhere. Each adapter registers an element only when you import its component, so bundlers drop the tools you do not use.
 
-## Shared surface
+## Components
 
-All adapters expose these properties:
+| Tool                      | React               | Vue                 | Angular                                                          |
+| ------------------------- | ------------------- | ------------------- | ---------------------------------------------------------------- |
+| Image compressor          | `ImageCompressor`   | `ImageCompressor`   | `ImageCompressorComponent` · `<pixelshift-image-compressor>`     |
+| Image resizer             | `ImageResizer`      | `ImageResizer`      | `ImageResizerComponent` · `<pixelshift-image-resizer>`           |
+| Image converter           | `ImageConverter`    | `ImageConverter`    | `ImageConverterComponent` · `<pixelshift-converter>`             |
+| Image cropper             | `ImageCropper`      | `ImageCropper`      | `ImageCropperComponent` · `<pixelshift-image-cropper>`           |
+| Color picker              | `ColorPicker`       | `ColorPicker`       | `ColorPickerComponent` · `<pixelshift-color-picker>`             |
+| Image to Base64           | `ImageToBase64`     | `ImageToBase64`     | `ImageToBase64Component` · `<pixelshift-image-to-base64>`        |
+| Social media resizer      | `SocialResizer`     | `SocialResizer`     | `SocialResizerComponent` · `<pixelshift-social-resizer>`         |
+| YouTube thumbnail resizer | `YouTubeThumbnail`  | `YouTubeThumbnail`  | `YouTubeThumbnailComponent` · `<pixelshift-youtube-thumbnail>`   |
+| Background remover        | `BackgroundRemover` | `BackgroundRemover` | `BackgroundRemoverComponent` · `<pixelshift-background-remover>` |
+| Studio                    | `PixelshiftStudio`  | `PixelshiftStudio`  | `PixelshiftStudioComponent` · `<pixelshift-studio>`              |
 
-| Property    | Type                        | Default  |
-| ----------- | --------------------------- | -------- |
-| `format`    | `"png" \| "jpeg" \| "webp"` | `"webp"` |
-| `quality`   | `number`                    | `0.85`   |
-| `maxWidth`  | `number`                    | unset    |
-| `maxHeight` | `number`                    | unset    |
-| `multiple`  | `boolean`                   | `false`  |
-| `disabled`  | `boolean`                   | `false`  |
+Every component accepts the shared properties (`disabled`, `isDarkMode`, `bare`, `auto`, `heading`, `description`) plus its tool's own properties from [Tools](/docs/tools), written in camelCase.
 
-Event names follow each framework's conventions:
+In Angular, the tool components use the custom element's own tag as their selector: Angular creates the element itself and forwards inputs to it, so there is no wrapper node and the markup matches plain HTML. The converter keeps its original `<pixelshift-converter>` wrapper selector.
+
+## Events
+
+| Purpose             | React               | Vue template        | Angular             |
+| ------------------- | ------------------- | ------------------- | ------------------- |
+| Files selected      | `onFilesSelected`   | `@files-selected`   | `(filesSelected)`   |
+| Processing started  | `onProcessStart`    | `@process-start`    | `(processStart)`    |
+| Processing finished | `onProcessComplete` | `@process-complete` | `(processComplete)` |
+| A file failed       | `onProcessError`    | `@process-error`    | `(processError)`    |
+| Crop box moved      | `onCropChange`      | `@crop-change`      | `(cropChange)`      |
+| Color picked        | `onColorPick`       | `@color-pick`       | `(colorPick)`       |
+| Studio tab changed  | `onToolChange`      | `@tool-change`      | `(toolChange)`      |
+
+React handlers receive the `CustomEvent`, so the payload is `event.detail`. Vue and Angular handlers receive the payload directly.
+
+The converter also keeps its original events:
 
 | Purpose             | React                  | Angular              | Vue template           |
 | ------------------- | ---------------------- | -------------------- | ---------------------- |
-| Files selected      | `onFilesSelected`      | `filesSelected`      | `@files-selected`      |
 | Conversion started  | `onConversionStart`    | `conversionStart`    | `@conversion-start`    |
 | Conversion finished | `onConversionComplete` | `conversionComplete` | `@conversion-complete` |
 | Conversion failed   | `onConversionError`    | `conversionError`    | `@conversion-error`    |
+
+Tool events bubble, so a handler on the studio hears every tool inside it.
 
 ## React
 
@@ -36,36 +57,48 @@ pnpm add pixelshift-react
 
 ```tsx
 import { useRef } from "react";
-import { ImageConverter, type ImageConverterElement } from "pixelshift-react";
+import {
+  ImageCompressor,
+  PixelshiftStudio,
+  type ImageCompressorElement,
+} from "pixelshift-react";
 
 export function Upload() {
-  const converter = useRef<ImageConverterElement>(null);
+  const compressor = useRef<ImageCompressorElement>(null);
 
   return (
     <>
-      <ImageConverter
-        ref={converter}
-        format="webp"
-        quality={0.85}
-        maxWidth={2400}
-        maxHeight={2400}
+      <ImageCompressor
+        ref={compressor}
+        quality={0.75}
+        targetSize={200 * 1024}
         multiple
         onFilesSelected={(event) => console.log(event.detail)}
-        onConversionStart={() => console.log("Conversion started")}
-        onConversionComplete={(event) => console.log(event.detail)}
-        onConversionError={(event) => console.error(event.detail)}
+        onProcessComplete={(event) => console.log(event.detail)}
+        onProcessError={(event) => console.error(event.detail.error)}
       />
 
-      <button type="button" onClick={() => void converter.current?.convert()}>
-        Convert programmatically
+      <button type="button" onClick={() => void compressor.current?.process()}>
+        Compress programmatically
       </button>
-      <button type="button" onClick={() => converter.current?.reset()}>
+      <button type="button" onClick={() => compressor.current?.reset()}>
         Reset
       </button>
     </>
   );
 }
+
+export function Toolkit() {
+  return (
+    <PixelshiftStudio
+      tools="compress,resize,crop,colors"
+      onToolChange={(event) => console.log(event.detail)}
+    />
+  );
+}
 ```
+
+The converter's original React API still works: `<ImageConverter format="webp" onConversionComplete={...} onConversionError={...} />`.
 
 ## Angular
 
@@ -73,52 +106,70 @@ export function Upload() {
 pnpm add pixelshift-angular
 ```
 
-Import the standalone component, then use its typed inputs and outputs:
+Import the standalone components, then use their typed inputs and outputs:
 
 ```ts
 import { Component, ViewChild } from "@angular/core";
 import {
+  ImageCompressorComponent,
   ImageConverterComponent,
+  type CompressionResult,
   type ConversionResult,
 } from "pixelshift-angular";
 
 @Component({
   selector: "app-upload",
   standalone: true,
-  imports: [ImageConverterComponent],
+  imports: [ImageCompressorComponent, ImageConverterComponent],
   template: `
+    <pixelshift-image-compressor
+      [quality]="0.75"
+      [multiple]="true"
+      (processComplete)="onCompressed($event)"
+      (processError)="onFailed($event.file, $event.error)"
+    />
+
     <pixelshift-converter
       format="webp"
       [quality]="0.85"
       [maxWidth]="2400"
-      [maxHeight]="2400"
       [multiple]="true"
-      (conversionComplete)="onComplete($event)"
+      (conversionComplete)="onConverted($event)"
       (conversionError)="onError($event)"
     />
   `,
 })
 export class UploadComponent {
-  @ViewChild(ImageConverterComponent)
-  private converter?: ImageConverterComponent;
+  @ViewChild(ImageCompressorComponent)
+  private compressor?: ImageCompressorComponent;
 
-  onComplete(results: ConversionResult[]): void {
+  onCompressed(results: CompressionResult[]): void {
     console.log(results);
+  }
+
+  onConverted(results: ConversionResult[]): void {
+    console.log(results);
+  }
+
+  onFailed(file: File, error: unknown): void {
+    console.error(file.name, error);
   }
 
   onError(error: unknown): void {
     console.error(error);
   }
 
-  convert(): void {
-    void this.converter?.convert();
+  compress(): void {
+    void this.compressor?.process();
   }
 
   reset(): void {
-    this.converter?.reset();
+    this.compressor?.reset();
   }
 }
 ```
+
+Tool components expose `process()`, `cancel()`, `reset()`, `loadFiles()`, and an `element` getter for the underlying custom element. `ImageConverterComponent` exposes `convert()` and `reset()`.
 
 ## Vue
 
@@ -129,16 +180,25 @@ pnpm add pixelshift-vue
 ```vue
 <script setup lang="ts">
 import { ref } from "vue";
-import { ImageConverter, type ConversionResult } from "pixelshift-vue";
+import {
+  ImageCompressor,
+  ImageConverter,
+  type CompressionResult,
+  type ConversionResult,
+} from "pixelshift-vue";
 
-type ConverterHandle = {
-  convert(): Promise<ConversionResult[]>;
+type ToolHandle = {
+  process(): Promise<unknown[]>;
   reset(): void;
 };
 
-const converter = ref<ConverterHandle | null>(null);
+const compressor = ref<ToolHandle | null>(null);
 
-function onComplete(results: ConversionResult[]) {
+function onCompressed(results: CompressionResult[]) {
+  console.log(results);
+}
+
+function onConverted(results: ConversionResult[]) {
   console.log(results);
 }
 
@@ -148,22 +208,27 @@ function onError(error: unknown) {
 </script>
 
 <template>
+  <ImageCompressor
+    ref="compressor"
+    :quality="0.75"
+    multiple
+    @process-complete="onCompressed"
+  />
+
   <ImageConverter
-    ref="converter"
     format="webp"
     :quality="0.85"
     :max-width="2400"
-    :max-height="2400"
     multiple
-    @conversion-complete="onComplete"
+    @conversion-complete="onConverted"
     @conversion-error="onError"
   />
 
-  <button type="button" @click="converter?.convert()">
-    Convert programmatically
-  </button>
-  <button type="button" @click="converter?.reset()">Reset</button>
+  <button type="button" @click="compressor?.process()">Compress</button>
+  <button type="button" @click="compressor?.reset()">Reset</button>
 </template>
 ```
 
-All three adapters re-export `ConversionOptions`, `ConversionResult`, and `OutputFormat`. The React and Vue packages also re-export `ImageConverterElement`; Angular exposes the element's public methods through `ImageConverterComponent`.
+Vue components expose `process()`, `cancel()`, `reset()`, `loadFiles()`, and `element` on their template ref. Props you leave out are not forwarded, so each element keeps its own defaults.
+
+All three adapters re-export the result types (`ImageResult`, `CompressionResult`, `ConversionResult`, `ColorInfo`, `Base64Result`, `SocialResizeResult`, `BackgroundRemovalResult`, and more). The React and Vue packages also re-export the element classes, such as `ImageCompressorElement`.

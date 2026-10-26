@@ -1,10 +1,10 @@
 ---
 title: Web component
-description: Configure the Lit custom element with attributes, properties, events, and methods.
+description: Register the custom elements and use the properties, methods, events, and theming every tool shares.
 icon: Box
 ---
 
-`<pixelshift-image-converter>` is the canonical UI. Every framework wrapper consumes this same namespaced element.
+Every Pixelshift tool is a Lit custom element, and every framework adapter renders these same elements. This page covers what all of them have in common. [Tools](/docs/tools) lists what each one adds.
 
 ## Install and register
 
@@ -12,13 +12,13 @@ icon: Box
 pnpm add pixelshift-web-core
 ```
 
-Import the registration entry once in your browser application:
+Import the registration entry once in your browser application. It registers the studio and every tool:
 
 ```ts
 import "pixelshift-web-core/define";
 ```
 
-The element is then available in HTML:
+The elements are then available in HTML:
 
 ```html
 <pixelshift-image-converter
@@ -28,65 +28,171 @@ The element is then available in HTML:
   max-height="2400"
   multiple
 ></pixelshift-image-converter>
+
+<pixelshift-image-compressor target-size="200kb"></pixelshift-image-compressor>
 ```
 
-## Properties
+### Register only what you use
 
-| Property    | Attribute    | Default  | Purpose                                   |
-| ----------- | ------------ | -------- | ----------------------------------------- |
-| `format`    | `format`     | `"webp"` | Output format: `png`, `jpeg`, or `webp`   |
-| `quality`   | `quality`    | `0.85`   | JPEG/WebP encoder quality from `0` to `1` |
-| `maxWidth`  | `max-width`  | unset    | Maximum output width in pixels            |
-| `maxHeight` | `max-height` | unset    | Maximum output height in pixels           |
-| `multiple`  | `multiple`   | `false`  | Permit batch selection                    |
-| `disabled`  | `disabled`   | `false`  | Disable user interaction                  |
+The package root registers nothing by itself. Import a tool's `define` function to register just that element; bundlers drop every tool you do not import:
+
+```ts
+import { defineImageCompressor, defineImageCropper } from "pixelshift-web-core";
+
+defineImageCompressor();
+defineImageCropper();
+```
+
+| Function                    | Element                                        |
+| --------------------------- | ---------------------------------------------- |
+| `defineImageCompressor()`   | `<pixelshift-image-compressor>`                |
+| `defineImageResizer()`      | `<pixelshift-image-resizer>`                   |
+| `defineImageConverter()`    | `<pixelshift-image-converter>`                 |
+| `defineImageCropper()`      | `<pixelshift-image-cropper>`                   |
+| `defineColorPicker()`       | `<pixelshift-color-picker>`                    |
+| `defineImageToBase64()`     | `<pixelshift-image-to-base64>`                 |
+| `defineSocialResizer()`     | `<pixelshift-social-resizer>`                  |
+| `defineYouTubeThumbnail()`  | `<pixelshift-youtube-thumbnail>`               |
+| `defineBackgroundRemover()` | `<pixelshift-background-remover>`              |
+| `defineStudio()`            | `<pixelshift-studio>` and every tool inside it |
+
+Registration functions are idempotent and safe to call during server rendering; they do nothing when `customElements` is unavailable.
+
+## Shared properties
+
+| Property      | Attribute      | Default         | Purpose                                                           |
+| ------------- | -------------- | --------------- | ----------------------------------------------------------------- |
+| `disabled`    | `disabled`     | `false`         | Block all interaction                                             |
+| `isDarkMode`  | `is-dark-mode` | `false`         | Switch to the dark palette                                        |
+| `bare`        | `bare`         | `false`         | Drop the panel border, padding, and header to fit your own layout |
+| `auto`        | `auto`         | `false`         | Process as soon as files arrive instead of waiting for the button |
+| `heading`     | `heading`      | tool's title    | Replace the title                                                 |
+| `description` | `description`  | tool's subtitle | Replace the subtitle                                              |
+
+The color picker and the Base64 tool default `auto` to `true`.
+
+Dark mode follows `is-dark-mode` rather than `prefers-color-scheme`: an element cannot see the host page's own theme state through its shadow root, so the page sets it explicitly.
+
+## Getting files in
+
+Users can drop files onto the dropzone, browse for them, or paste images from the clipboard while focus is inside the element. Selected files are listed with thumbnails and can be removed one by one.
+
+To supply files from code, call `loadFiles()`. It behaves exactly like a drop, including the `files-selected` event and `auto` processing:
+
+```ts
+const compressor = document.querySelector("pixelshift-image-compressor");
+compressor?.loadFiles(fileInput.files ?? []);
+```
+
+## Methods and getters
+
+| Member             | Purpose                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| `loadFiles(files)` | Replace the selection with a `FileList` or `File[]`            |
+| `process()`        | Run the tool on every selected file; resolves with the results |
+| `cancel()`         | Stop a running batch after the current file                    |
+| `reset()`          | Clear files, results, and errors                               |
+| `files`            | The selected files (read-only)                                 |
+| `results`          | Results of the last completed run (read-only)                  |
+
+`process()` resolves with an empty array when there are no files, the element is disabled, or a run is already in progress.
+
+```ts
+if (compressor) {
+  const results = await compressor.process();
+  console.log(results);
+  compressor.reset();
+}
+```
 
 ## Events
 
 All events bubble and cross the shadow-DOM boundary.
 
-| Event                 | Detail               |
-| --------------------- | -------------------- |
-| `files-selected`      | `File[]`             |
-| `conversion-start`    | none                 |
-| `conversion-complete` | `ConversionResult[]` |
-| `conversion-error`    | the thrown error     |
+| Event              | Detail                                  |
+| ------------------ | --------------------------------------- |
+| `files-selected`   | `File[]`                                |
+| `process-start`    | `File[]` about to be processed          |
+| `process-complete` | the tool's results                      |
+| `process-error`    | `{ file, error }`, once per failed file |
 
 ```ts
-import type { ImageConverterElement } from "pixelshift-web-core";
+import type { ImageCompressorElement } from "pixelshift-web-core";
 
-const converter = document.querySelector<ImageConverterElement>(
-  "pixelshift-image-converter",
+const compressor = document.querySelector<ImageCompressorElement>(
+  "pixelshift-image-compressor",
 );
 
-converter?.addEventListener("files-selected", (event) => {
+compressor?.addEventListener("files-selected", (event) => {
   const files = (event as CustomEvent<File[]>).detail;
   console.log(`${files.length} files selected`);
 });
 ```
 
-## Methods
+Some tools add their own events, such as `crop-change` and `color-pick`; see [Tools](/docs/tools).
 
-Call `convert()` to start conversion programmatically. It resolves with all conversion results, or with an empty array when there are no files, the element is disabled, or conversion fails. Failures are also reported through `conversion-error`.
+### Failures
 
-Call `reset()` to clear the current files, results, previews, and displayed error.
+A batch keeps going when one file fails. Each failure fires `process-error` and is listed in the element with the file name and the reason, and `process-complete` fires with the files that succeeded.
 
-```ts
-if (converter) {
-  const results = await converter.convert();
-  console.log(results);
-  converter.reset();
+The image converter is the exception. It predates the other tools and stays fail-fast: one failed file rejects the whole batch, `process()` and its alias `convert()` resolve with `[]`, and it also fires its original `conversion-start`, `conversion-complete`, and `conversion-error` events.
+
+## Theming
+
+Colors, radii, and fonts are CSS custom properties. Custom properties inherit through the shadow root, so set them on the element or any ancestor:
+
+```css
+pixelshift-studio {
+  --pixelshift-accent: #ff6838;
+  --pixelshift-accent-content: #ffffff;
+  --pixelshift-radius: 6px;
+  --pixelshift-font-family: "IBM Plex Sans", sans-serif;
+}
+
+.dark pixelshift-studio {
+  --pixelshift-accent: #caff45;
+  --pixelshift-accent-content: #151614;
 }
 ```
 
-## Manual registration
+Overrides apply in both themes, so scope them to your own dark-mode selector when they should differ.
 
-The package root does not register the custom element by itself. Import `defineImageConverter()` when you want to choose when registration happens:
+| Property                      | Purpose                                 |
+| ----------------------------- | --------------------------------------- |
+| `--pixelshift-surface`        | Panel background                        |
+| `--pixelshift-surface-muted`  | Dropzone and preview backgrounds        |
+| `--pixelshift-field`          | Input background                        |
+| `--pixelshift-hover`          | Hover background                        |
+| `--pixelshift-border`         | Subtle borders                          |
+| `--pixelshift-border-strong`  | Input and button borders                |
+| `--pixelshift-text`           | Primary text                            |
+| `--pixelshift-text-muted`     | Labels and secondary text               |
+| `--pixelshift-text-subtle`    | Hints and metadata                      |
+| `--pixelshift-accent`         | Primary buttons and selected states     |
+| `--pixelshift-accent-hover`   | Primary button hover                    |
+| `--pixelshift-accent-content` | Text on the accent color                |
+| `--pixelshift-focus`          | Focus outline                           |
+| `--pixelshift-danger`         | Error text                              |
+| `--pixelshift-danger-surface` | Error background                        |
+| `--pixelshift-success`        | Savings and success text                |
+| `--pixelshift-radius`         | Control corner radius (default `8px`)   |
+| `--pixelshift-panel-radius`   | Panel corner radius (default `12px`)    |
+| `--pixelshift-font-family`    | Text font (default: the system UI font) |
+| `--pixelshift-font-mono`      | Code and color values                   |
 
-```ts
-import { defineImageConverter } from "pixelshift-web-core";
+For anything the tokens do not cover, style the exposed parts with `::part()`:
 
-defineImageConverter();
+| Part       | Element                     |
+| ---------- | --------------------------- |
+| `panel`    | The outer container         |
+| `heading`  | The title                   |
+| `dropzone` | The file drop area          |
+| `action`   | The primary action button   |
+| `results`  | The result list             |
+| `download` | Each result's download link |
+
+```css
+pixelshift-image-compressor::part(panel) {
+  box-shadow: none;
+}
 ```
-
-The registration function is idempotent and will not redefine an existing element.

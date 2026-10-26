@@ -4,6 +4,8 @@ import {
   calculateTargetSize,
   createOutputName,
   detectImageType,
+  formatBytes,
+  formatForMimeType,
   normalizeQuality,
 } from "./index.js";
 
@@ -37,5 +39,19 @@ describe("image core", () => {
 
     await expect(detectImageType(png)).resolves.toBe("image/png");
     await expect(detectImageType(jpeg)).resolves.toBe("image/jpeg");
+  });
+
+  it("keeps the input format where a canvas encoder exists", () => {
+    expect(formatForMimeType("image/jpeg")).toBe("jpeg");
+    expect(formatForMimeType("image/webp")).toBe("webp");
+    expect(formatForMimeType("image/gif")).toBe("png");
+    expect(formatForMimeType("image/bmp")).toBe("png");
+  });
+
+  it("formats byte counts for people", () => {
+    expect(formatBytes(512)).toBe("512 B");
+    expect(formatBytes(1536)).toBe("1.5 KB");
+    expect(formatBytes(5 * 1024 * 1024)).toBe("5.0 MB");
+    expect(formatBytes(-2048)).toBe("-2.0 KB");
   });
 });

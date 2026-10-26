@@ -7,6 +7,6 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["index.ts"],
-  "exclude": ["dist", "index.test.ts"]
+  "include": ["*.ts"],
+  "exclude": ["dist", "*.test.ts", "vite.config.ts"]
 }

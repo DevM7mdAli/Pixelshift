@@ -1,7 +1,7 @@
 {
   "name": "pixelshift-vue",
   "version": "0.1.0",
-  "description": "Vue image converter component for local browser PNG, JPEG, and WebP conversion.",
+  "description": "Vue components for Pixelshift's local browser image tools: compress, resize, convert, crop, colors, Base64, social sizes, and background removal.",
   "type": "module",
   "files": [
     "dist"
@@ -35,7 +35,15 @@
     "webp",
     "jpeg",
     "png",
-    "browser"
+    "browser",
+    "image compressor",
+    "image resizer",
+    "image cropper",
+    "color picker",
+    "base64",
+    "background remover",
+    "social media",
+    "youtube thumbnail"
   ],
   "peerDependencies": {
     "vue": ">=2.0.0"

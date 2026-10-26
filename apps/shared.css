@@ -1,6 +1,6 @@
 :root {
-  color: #0f172a;
-  background: #f1f5f9;
+  color: #151614;
+  background: #f2f0e8;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -19,7 +19,7 @@ body {
 
 .app-heading {
   margin: 0 auto 1.5rem;
-  max-width: 48rem;
+  max-width: 56rem;
 }
 
 .app-heading h1 {
@@ -28,5 +28,28 @@ body {
 
 .app-heading p {
   margin: 0.5rem 0 0;
-  color: #475569;
+  color: #555750;
+}
+
+.app-shell > :not(.app-heading) {
+  display: block;
+  max-width: 56rem;
+  margin: 0 auto;
+}
+
+.app-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.dark {
+  color: #f3f1e7;
+  background: #17160f;
+}
+
+.dark .app-heading p {
+  color: #b8b5a6;
 }

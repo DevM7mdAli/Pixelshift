@@ -3,12 +3,24 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "fumadocs-ui/provider/base";
 
-type ImageConverterComponent =
-  (typeof import("pixelshift-react"))["ImageConverter"];
+type PixelshiftStudioComponent =
+  (typeof import("pixelshift-react"))["PixelshiftStudio"];
 
-export function ConverterDemo() {
-  const [ImageConverter, setImageConverter] =
-    useState<ImageConverterComponent>();
+const toolNames: Record<string, string> = {
+  compress: "Compressor",
+  resize: "Resizer",
+  convert: "Converter",
+  crop: "Cropper",
+  colors: "Color picker",
+  base64: "Base64 encoder",
+  social: "Social resizer",
+  youtube: "YouTube thumbnails",
+  background: "Background remover",
+};
+
+export function StudioDemo() {
+  const [PixelshiftStudio, setPixelshiftStudio] =
+    useState<PixelshiftStudioComponent>();
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("Ready when you are");
   const { resolvedTheme } = useTheme();
@@ -17,9 +29,9 @@ export function ConverterDemo() {
     let active = true;
 
     import("pixelshift-react")
-      .then(({ ImageConverter: ReactImageConverter }) => {
+      .then(({ PixelshiftStudio: ReactPixelshiftStudio }) => {
         if (active) {
-          setImageConverter(() => ReactImageConverter);
+          setPixelshiftStudio(() => ReactPixelshiftStudio);
           setReady(true);
         }
       })
@@ -40,7 +52,10 @@ export function ConverterDemo() {
           <i className="size-2.25 rounded-full border border-pixel-ink bg-pixel-lime" />
           <i className="size-2.25 rounded-full border border-pixel-ink bg-transparent" />
         </span>
-        <span className="flex min-w-0 max-w-full items-center gap-[0.45rem] text-xs font-bold max-[700px]:justify-self-end">
+        <span
+          className="flex min-w-0 max-w-full items-center gap-[0.45rem] text-xs font-bold max-[700px]:justify-self-end"
+          role="status"
+        >
           <span className="size-1.75 shrink-0 rounded-full bg-pixel-success shadow-[0_0_0_4px] shadow-pixel-success/[0.14]" />
           <span className="truncate">{status}</span>
         </span>
@@ -49,24 +64,22 @@ export function ConverterDemo() {
         </span>
       </div>
       <div className="min-h-135 min-w-0 bg-[linear-gradient(90deg,var(--pixelshift-canvas-grid)_1px,transparent_1px),linear-gradient(var(--pixelshift-canvas-grid)_1px,transparent_1px)] bg-pixel-canvas p-[clamp(1rem,5vw,4.5rem)] bg-size-[22px_22px] max-[700px]:min-h-115 max-[700px]:p-3 max-[430px]:p-2">
-        {ready && ImageConverter ? (
-          <ImageConverter
+        {ready && PixelshiftStudio ? (
+          <PixelshiftStudio
             className="mx-auto block w-full min-w-0 max-w-215"
-            format="webp"
-            quality={0.85}
-            maxWidth={2400}
-            maxHeight={2400}
-            multiple
             isDarkMode={resolvedTheme === "dark"}
-            onConversionStart={() => setStatus("Converting locally…")}
-            onConversionComplete={(event) => {
+            onToolChange={(event) =>
+              setStatus(`${toolNames[event.detail] ?? "Tool"} ready`)
+            }
+            onProcessStart={() => setStatus("Processing locally…")}
+            onProcessComplete={(event) => {
               const count = event.detail.length;
               setStatus(
-                `${count} ${count === 1 ? "image" : "images"} converted`,
+                `${count} ${count === 1 ? "image" : "images"} processed`,
               );
             }}
-            onConversionError={() =>
-              setStatus("Conversion could not be completed")
+            onProcessError={(event) =>
+              setStatus(`${event.detail.file.name} could not be processed`)
             }
           />
         ) : (
@@ -75,7 +88,7 @@ export function ConverterDemo() {
             role="status"
           >
             <span className="size-3.5 animate-spin rounded-full border-2 border-pixel-line border-t-pixel-orange motion-reduce:animate-none" />
-            Loading the converter…
+            Loading the image tools…
           </div>
         )}
       </div>

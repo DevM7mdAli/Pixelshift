@@ -1,0 +1,252 @@
+---
+title: Tools
+description: Every Pixelshift element, its attributes, its events, and the core function behind it.
+icon: LayoutGrid
+---
+
+Each tool is a custom element built on the same base, so they all share the properties, methods, and events described in [Web component](/docs/web-component). This page lists what is specific to each one.
+
+| Tool                      | Element                           | Core function                                   |
+| ------------------------- | --------------------------------- | ----------------------------------------------- |
+| Image compressor          | `<pixelshift-image-compressor>`   | `compressImage()`                               |
+| Image resizer             | `<pixelshift-image-resizer>`      | `resizeImage()`                                 |
+| Image converter           | `<pixelshift-image-converter>`    | `convertImage()`                                |
+| Image cropper             | `<pixelshift-image-cropper>`      | `cropImage()`                                   |
+| Color picker              | `<pixelshift-color-picker>`       | `readImageData()`, `extractPaletteFromPixels()` |
+| Image to Base64           | `<pixelshift-image-to-base64>`    | `imageToBase64()`, `createEmbedSnippets()`      |
+| Social media resizer      | `<pixelshift-social-resizer>`     | `resizeForSocial()`                             |
+| YouTube thumbnail resizer | `<pixelshift-youtube-thumbnail>`  | `resizeForSocial(file, "youtube-thumbnail")`    |
+| Background remover        | `<pixelshift-background-remover>` | `removeBackground()`                            |
+| Studio                    | `<pixelshift-studio>`             | all of the above                                |
+
+The compressor, resizer, converter, social resizer, and background remover accept one file by default; add `multiple` to process a batch. The cropper, color picker, and Base64 tool work on a single image.
+
+## Image compressor
+
+Shrinks JPEG, PNG, and WebP files while keeping their format. JPEG and WebP are re-encoded at a lower quality. PNG is quantized to an indexed palette of up to 256 colors, the approach TinyPNG and pngquant use. A file never comes back larger than it went in: if compression cannot beat the original, the original bytes are returned and the result is marked `unchanged`.
+
+```html
+<pixelshift-image-compressor
+  quality="0.75"
+  target-size="200kb"
+  multiple
+></pixelshift-image-compressor>
+```
+
+| Property     | Attribute     | Default        | Purpose                                                                 |
+| ------------ | ------------- | -------------- | ----------------------------------------------------------------------- |
+| `quality`    | `quality`     | `0.8`          | Starting JPEG/WebP quality from `0` to `1`                              |
+| `format`     | `format`      | input's format | `png`, `jpeg`, or `webp`; unset keeps each file's format                |
+| `targetSize` | `target-size` | unset          | Upper bound in bytes; the attribute also accepts `"200kb"` or `"1.5mb"` |
+| `maxWidth`   | `max-width`   | unset          | Downscale wider images while compressing                                |
+| `multiple`   | `multiple`    | `false`        | Permit batch selection                                                  |
+
+With a target size, the compressor binary-searches JPEG/WebP quality for the best result that fits, or steps the PNG palette down from 256 colors. Results are `CompressionResult` objects; see [`compressImage()`](/docs/api#compressimage). Each result row offers a before/after comparison slider, and a batch can be downloaded as one ZIP file.
+
+## Image resizer
+
+Resizes to exact pixels or a percentage, with an aspect-ratio lock and four fit modes. Unlike the converter's maximum dimensions, it enlarges smaller images unless `no-upscale` is set.
+
+```html
+<pixelshift-image-resizer width="1200" multiple></pixelshift-image-resizer>
+
+<pixelshift-image-resizer
+  width="1200"
+  height="630"
+  keep-aspect-ratio="false"
+  fit="contain"
+></pixelshift-image-resizer>
+```
+
+| Property          | Attribute           | Default        | Purpose                                                                       |
+| ----------------- | ------------------- | -------------- | ----------------------------------------------------------------------------- |
+| `width`           | `width`             | source width   | Target width in pixels                                                        |
+| `height`          | `height`            | source height  | Target height in pixels                                                       |
+| `unit`            | `unit`              | `"px"`         | `"px"` or `"percent"`                                                         |
+| `percent`         | `percent`           | `50`           | Scale when `unit` is `"percent"`                                              |
+| `keepAspectRatio` | `keep-aspect-ratio` | `true`         | Derive one dimension from the other; set the attribute to `"false"` to unlock |
+| `fit`             | `fit`               | `"cover"`      | `cover`, `contain`, `fill`, or `inside` when the ratio is unlocked            |
+| `format`          | `format`            | input's format | Output format                                                                 |
+| `quality`         | `quality`           | `0.9`          | JPEG/WebP quality                                                             |
+| `noUpscale`       | `no-upscale`        | `false`        | Never enlarge beyond the source's own pixels                                  |
+| `multiple`        | `multiple`          | `false`        | Permit batch selection                                                        |
+
+With the ratio locked, only the dimension the user edited last is applied, so every image in a batch keeps its own proportions.
+
+## Image converter
+
+Converts PNG, JPEG, WebP, GIF (first frame), and BMP to PNG, JPEG, or WebP, optionally downscaling. A WebP converter is the same element with `format="webp"`, which is also its default.
+
+```html
+<pixelshift-image-converter
+  format="webp"
+  quality="0.85"
+  max-width="2400"
+  multiple
+></pixelshift-image-converter>
+```
+
+| Property    | Attribute    | Default  | Purpose                                   |
+| ----------- | ------------ | -------- | ----------------------------------------- |
+| `format`    | `format`     | `"webp"` | Output format: `png`, `jpeg`, or `webp`   |
+| `quality`   | `quality`    | `0.85`   | JPEG/WebP encoder quality from `0` to `1` |
+| `maxWidth`  | `max-width`  | unset    | Maximum output width in pixels            |
+| `maxHeight` | `max-height` | unset    | Maximum output height in pixels           |
+| `multiple`  | `multiple`   | `false`  | Permit batch selection                    |
+
+The converter predates the other tools and keeps its original contract: it is fail-fast, `convert()` is an alias of `process()`, and it fires `conversion-start`, `conversion-complete`, and `conversion-error` alongside the shared `process-*` events.
+
+## Image cropper
+
+Drag a crop box over the image, resize it from any edge or corner, pick a preset aspect ratio, or type exact pixel values. The box moves with the arrow keys (hold Shift for 10 px steps).
+
+```html
+<pixelshift-image-cropper aspect-ratio="16:9"></pixelshift-image-cropper>
+```
+
+| Property      | Attribute      | Default        | Purpose                                                      |
+| ------------- | -------------- | -------------- | ------------------------------------------------------------ |
+| `aspectRatio` | `aspect-ratio` | `"free"`       | `"free"` or a ratio such as `"16:9"`, `"1:1"`, or `"1.91"`   |
+| `format`      | `format`       | input's format | Output format                                                |
+| `quality`     | `quality`      | `0.92`         | JPEG/WebP quality                                            |
+| `crop`        | —              | centered box   | The crop `Rect` in source pixels; set it to position the box |
+
+The preset buttons cover Free, 1:1, 4:5, 3:4, 2:3, 9:16, 4:3, 3:2, 16:9, and 21:9.
+
+| Event         | Detail                           |
+| ------------- | -------------------------------- |
+| `crop-change` | `Rect` in source pixels, rounded |
+
+## Color picker
+
+Extracts the dominant palette of an image and lets the user pick any pixel with a magnifier. Every color is shown as HEX, RGB, and HSL with copy buttons, and the palette can be copied as CSS custom properties. It processes an image as soon as it arrives.
+
+```html
+<pixelshift-color-picker count="8" color-format="hsl"></pixelshift-color-picker>
+```
+
+| Property      | Attribute      | Default | Purpose                                              |
+| ------------- | -------------- | ------- | ---------------------------------------------------- |
+| `count`       | `count`        | `6`     | Number of palette colors to extract                  |
+| `colorFormat` | `color-format` | `"hex"` | Notation for labels and copying: `hex`, `rgb`, `hsl` |
+| `color`       | —              | —       | Read-only: the most recently picked color            |
+
+| Event              | Detail                                                             |
+| ------------------ | ------------------------------------------------------------------ |
+| `color-pick`       | `ColorInfo` of the chosen color                                    |
+| `process-complete` | `[{ palette: PaletteColor[], average: ColorInfo, width, height }]` |
+
+## Image to Base64
+
+Encodes an image as a Base64 data URL with ready-to-paste snippets for HTML, CSS, Markdown, and JSON. It reads the original bytes without decoding them, so SVG, AVIF, and ICO files work too.
+
+```html
+<pixelshift-image-to-base64 snippet="css"></pixelshift-image-to-base64>
+```
+
+| Property  | Attribute | Default     | Purpose                                                              |
+| --------- | --------- | ----------- | -------------------------------------------------------------------- |
+| `snippet` | `snippet` | `"dataUrl"` | First tab: `dataUrl`, `base64`, `html`, `css`, `markdown`, or `json` |
+| `alt`     | `alt`     | file name   | Alt text for the HTML and Markdown snippets                          |
+
+Large data URLs are previewed truncated; copying and downloading always use the full text. Results are `Base64Result` objects.
+
+## Social media resizer
+
+Fits images to recommended sizes for Instagram, Facebook, X, YouTube, LinkedIn, Snapchat, Pinterest, and TikTok. A live preview shows how the first image will be framed, and a 3×3 focus grid chooses which part stays in frame when cropping.
+
+```html
+<pixelshift-social-resizer
+  preset="instagram-story"
+  platforms="instagram,tiktok"
+></pixelshift-social-resizer>
+```
+
+| Property     | Attribute    | Default              | Purpose                                                |
+| ------------ | ------------ | -------------------- | ------------------------------------------------------ |
+| `preset`     | `preset`     | `"instagram-square"` | Selected preset id, e.g. `"linkedin-cover"`            |
+| `platforms`  | `platforms`  | all                  | Comma-separated platform ids to offer                  |
+| `fit`        | `fit`        | `"cover"`            | `cover` crops to fill the frame; `contain` letterboxes |
+| `position`   | `position`   | `"center"`           | Part kept in frame, e.g. `"top"` or `"bottom-left"`    |
+| `background` | `background` | `"#ffffff"`          | Letterbox color for `contain`                          |
+| `format`     | `format`     | input's format       | Output format                                          |
+| `quality`    | `quality`    | `0.92`               | JPEG/WebP quality                                      |
+| `multiple`   | `multiple`   | `false`              | Permit batch selection                                 |
+
+The preset ids and sizes come from `SOCIAL_PRESETS` in the core; see [`resizeForSocial()`](/docs/api#resizeforsocial). Presets with an upload limit, such as the YouTube banner, are compressed to fit it.
+
+## YouTube thumbnail resizer
+
+Resizes any image to 1280 × 720 and compresses it under YouTube's 2 MB upload limit. After processing it previews the thumbnail at the widths viewers see it in the home feed, search results, and the up-next list, which is where small text stops being legible.
+
+```html
+<pixelshift-youtube-thumbnail></pixelshift-youtube-thumbnail>
+```
+
+It is the social media resizer locked to the `youtube-thumbnail` preset, with JPEG as its default format. It accepts the same `fit`, `position`, `background`, `format`, `quality`, and `multiple` properties.
+
+## Background remover
+
+Removes plain or gently graded backgrounds by keying out the colors that dominate the image edges. It works well for product shots, logos, signatures, and screenshots, including soft shadows and studio vignettes. It is not a person or object segmentation model: busy photographic backgrounds need one, and you can plug it in with `segmenter`.
+
+```html
+<pixelshift-background-remover
+  tolerance="20"
+  feather="2"
+></pixelshift-background-remover>
+```
+
+| Property     | Attribute    | Default               | Purpose                                                                                     |
+| ------------ | ------------ | --------------------- | ------------------------------------------------------------------------------------------- |
+| `tolerance`  | `tolerance`  | `15`                  | How far a pixel may stray from the background color, `0`–`100`                              |
+| `feather`    | `feather`    | `1`                   | Edge softness in pixels                                                                     |
+| `contiguous` | `contiguous` | `true`                | Only remove background touching the edges; `contiguous="false"` also removes enclosed areas |
+| `color`      | `color`      | detected from edges   | Background color to remove, e.g. `"#ffffff"`; users can also pick it from the image         |
+| `background` | `background` | transparent           | Fill color for the removed area instead of transparency                                     |
+| `format`     | `format`     | PNG (WebP stays WebP) | Output format                                                                               |
+| `multiple`   | `multiple`   | `false`               | Permit batch selection                                                                      |
+| `segmenter`  | —            | unset                 | A custom foreground model that replaces color keying                                        |
+
+With a single image, changing any setting after the first run re-processes it automatically, and the result is shown in a before/after slider over a transparency checkerboard.
+
+A segmenter receives the decoded pixels and resolves with one foreground value per pixel: `0`–`255` in a `Uint8Array` or `Uint8ClampedArray`, `0`–`1` in a `Float32Array`, or an `ImageData` whose alpha channel is the mask. Any model that produces a mask fits:
+
+```ts
+import type { Segmenter } from "pixelshift-web-core";
+
+const remover = document.querySelector("pixelshift-background-remover");
+
+const segmenter: Segmenter = async (image, { signal }) => {
+  // Run your model on `image` (an ImageData) and return its mask.
+  return await myModel.predictMask(image, { signal });
+};
+
+if (remover) remover.segmenter = segmenter;
+```
+
+## Studio
+
+Every tool behind one tab bar. Files carry over when switching tabs, and each visited tool keeps its results.
+
+```html
+<pixelshift-studio
+  tools="compress,resize,crop,colors"
+  tool="crop"
+></pixelshift-studio>
+```
+
+| Property     | Attribute      | Default      | Purpose                                    |
+| ------------ | -------------- | ------------ | ------------------------------------------ |
+| `tools`      | `tools`        | all          | Comma-separated tool ids to show, in order |
+| `tool`       | `tool`         | `"compress"` | The active tool id                         |
+| `disabled`   | `disabled`     | `false`      | Disable every tool                         |
+| `isDarkMode` | `is-dark-mode` | `false`      | Switch every tool to the dark palette      |
+| `bare`       | `bare`         | `false`      | Drop the outer panel border and padding    |
+
+Tool ids are `compress`, `resize`, `convert`, `crop`, `colors`, `base64`, `social`, `youtube`, and `background`. The `activeTool` getter returns the element of the selected tool.
+
+| Event         | Detail          |
+| ------------- | --------------- |
+| `tool-change` | the new tool id |
+
+Events from the tools inside bubble through the studio, so one `process-complete` listener on it hears every tool.

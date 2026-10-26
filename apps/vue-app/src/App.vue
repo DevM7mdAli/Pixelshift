@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ImageConverter, type ConversionResult } from "pixelshift-vue";
+import { PixelshiftStudio } from "pixelshift-vue";
 import { ref } from "vue";
 
-const convertedCount = ref(0);
+const processedCount = ref(0);
 
-function onComplete(results: ConversionResult[]) {
-  convertedCount.value = results.length;
+function onComplete(results: unknown[]) {
+  processedCount.value += results.length;
 }
 </script>
 
@@ -13,8 +13,8 @@ function onComplete(results: ConversionResult[]) {
   <main class="app-shell">
     <header class="app-heading">
       <h1>Vue integration</h1>
-      <p>Converted in the current session: {{ convertedCount }}</p>
+      <p>Processed in the current session: {{ processedCount }}</p>
     </header>
-    <ImageConverter multiple @conversion-complete="onComplete" />
+    <PixelshiftStudio @process-complete="onComplete" />
   </main>
 </template>

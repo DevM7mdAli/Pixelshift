@@ -1,5 +1,6 @@
-import { defineImageConverter } from "./image-converter.js";
+import { defineStudio } from "./studio.js";
 
-defineImageConverter();
+// Registers every element: the studio and each tool it contains.
+defineStudio();
 
 export * from "./index.js";

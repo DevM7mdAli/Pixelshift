@@ -1,16 +1,55 @@
 ---
 title: Core API
-description: Convert images without UI using the framework-independent browser API.
+description: Compress, resize, crop, convert, sample colors, encode Base64, and remove backgrounds without UI.
 icon: Braces
 ---
 
-Install the core when you need conversion behavior without the Lit component:
+Install the core when you need image processing without the Lit elements:
 
 ```bash
 pnpm add pixelshift-core
 ```
 
-The core API runs in the browser and depends on canvas, `Blob`, `File`, and browser image decoders.
+The core runs in the browser and depends on `Blob`, `File`, the browser's image decoders, and a canvas. It also runs inside Web Workers: when there is no `document`, it draws on an `OffscreenCanvas`. Every function is tree-shakeable, so importing one helper does not pull in the rest.
+
+## Shared options and results
+
+Every operation that decodes an image accepts these limits:
+
+| Option      | Type          | Default           | Purpose                                      |
+| ----------- | ------------- | ----------------- | -------------------------------------------- |
+| `maxBytes`  | `number`      | 25 MiB            | Reject larger input files                    |
+| `maxPixels` | `number`      | 40 million pixels | Reject larger decoded images                 |
+| `signal`    | `AbortSignal` | unset             | Cooperatively cancel at operation boundaries |
+
+Every operation that encodes an image accepts these output settings:
+
+| Option       | Type                        | Default                       | Purpose                                     |
+| ------------ | --------------------------- | ----------------------------- | ------------------------------------------- |
+| `format`     | `"png" \| "jpeg" \| "webp"` | the input's format            | Output format; GIF and BMP fall back to PNG |
+| `quality`    | `number` from `0` to `1`    | `0.85`                        | JPEG/WebP encoder quality                   |
+| `background` | CSS color string            | `#ffffff` for JPEG            | Fill behind transparent pixels              |
+| `fileName`   | `string`                    | input name with new extension | Output file name                            |
+
+And every pixel-producing operation resolves with an `ImageResult`, which some functions extend:
+
+```ts
+interface ImageResult {
+  blob: Blob;
+  file: File;
+  inputType: string;
+  outputType: string;
+  originalSize: number;
+  convertedSize: number;
+  width: number;
+  height: number;
+  originalWidth: number;
+  originalHeight: number;
+  durationMs: number;
+}
+```
+
+`ConversionResult` is the historic name of the same type.
 
 ## `convertImage()`
 
@@ -25,36 +64,9 @@ const result = await convertImage(file, {
 });
 ```
 
-## Conversion options
+`format` is required. `maxWidth` and `maxHeight` only downscale, preserving the aspect ratio.
 
-| Option       | Type                        | Default            | Purpose                                       |
-| ------------ | --------------------------- | ------------------ | --------------------------------------------- |
-| `format`     | `"png" \| "jpeg" \| "webp"` | required           | Select the output MIME type                   |
-| `quality`    | `number` from `0` to `1`    | `0.85`             | Set JPEG/WebP encoder quality                 |
-| `maxWidth`   | positive `number`           | original width     | Downscale while preserving aspect ratio       |
-| `maxHeight`  | positive `number`           | original height    | Downscale while preserving aspect ratio       |
-| `background` | CSS color string            | `#ffffff` for JPEG | Fill transparent pixels when creating JPEG    |
-| `maxBytes`   | positive `number`           | 25 MiB             | Reject larger input files                     |
-| `maxPixels`  | positive `number`           | 40 million pixels  | Reject larger decoded images                  |
-| `signal`     | `AbortSignal`               | unset              | Cooperatively cancel at conversion boundaries |
-
-## Conversion result
-
-```ts
-interface ConversionResult {
-  blob: Blob;
-  file: File;
-  inputType: string;
-  outputType: string;
-  originalSize: number;
-  convertedSize: number;
-  width: number;
-  height: number;
-  durationMs: number;
-}
-```
-
-## Batch conversion
+### Batch conversion
 
 `convertImages()` processes files sequentially and returns results in input order:
 
@@ -70,9 +82,247 @@ const results = await convertImages(files, {
 
 Batch conversion is fail-fast. If one file fails, the promise rejects immediately and does not return partial results from earlier files.
 
+## `compressImage()`
+
+Shrinks an image while keeping its format. JPEG and WebP are re-encoded at a lower quality. PNG is quantized to an indexed palette and written with its own encoder, because browsers' canvas encoders only produce truecolor PNGs.
+
+```ts
+import { compressImage } from "pixelshift-core";
+
+const result = await compressImage(file, { quality: 0.75 });
+const small = await compressImage(file, { targetBytes: 200 * 1024 });
+```
+
+| Option        | Type      | Default | Purpose                                                       |
+| ------------- | --------- | ------- | ------------------------------------------------------------- |
+| `quality`     | `number`  | `0.8`   | Starting JPEG/WebP quality                                    |
+| `targetBytes` | `number`  | unset   | Lower quality, or the PNG palette size, until the output fits |
+| `maxWidth`    | `number`  | unset   | Downscale to at most this width while compressing             |
+| `maxHeight`   | `number`  | unset   | Downscale to at most this height while compressing            |
+| `colors`      | `number`  | `256`   | PNG palette size, from `2` to `256`                           |
+| `dither`      | `boolean` | `true`  | Diffuse PNG quantization error to hide banding                |
+| `lossless`    | `boolean` | `false` | Re-encode PNG without reducing colors                         |
+| `allowLarger` | `boolean` | `false` | Keep a result that is larger than the input                   |
+
+With `targetBytes`, JPEG and WebP quality is binary-searched for the highest quality that fits; PNG steps the palette down from 256 colors. By default compressing never makes a file worse: when the output would be at least as large as the input and the format and size are unchanged, the original bytes come back and `unchanged` is `true`.
+
+```ts
+interface CompressionResult extends ImageResult {
+  quality: number | undefined; // final JPEG/WebP quality
+  colors: number | undefined; // final PNG palette size
+  savings: number; // 0.4 means 40% smaller; negative if larger
+  unchanged: boolean;
+  targetMet: boolean; // true when no target was set
+}
+```
+
+PNG quantization needs `CompressionStream`; where it is missing, PNG falls back to a lossless re-encode.
+
+## `resizeImage()`
+
+Resizes to exact dimensions, one dimension, or a scale factor. Unlike `maxWidth` on the converter, it enlarges smaller images unless `withoutEnlargement` is set.
+
+```ts
+import { resizeImage } from "pixelshift-core";
+
+await resizeImage(file, { width: 1200, height: 630, fit: "cover" });
+await resizeImage(file, { width: 800 }); // height follows the aspect ratio
+await resizeImage(file, { scale: 0.5 });
+```
+
+| Option               | Type                     | Default    | Purpose                                             |
+| -------------------- | ------------------------ | ---------- | --------------------------------------------------- |
+| `width`              | `number`                 | unset      | Target width; alone, the height follows             |
+| `height`             | `number`                 | unset      | Target height; alone, the width follows             |
+| `scale`              | `number`                 | unset      | Uniform factor, ignored when width or height is set |
+| `fit`                | `FitMode`                | `"cover"`  | How both dimensions are filled                      |
+| `position`           | `Position \| FocalPoint` | `"center"` | Part kept by `cover`, or placement for `contain`    |
+| `withoutEnlargement` | `boolean`                | `false`    | Never scale beyond the source's own pixels          |
+
+Fit modes match sharp and CSS `object-fit`:
+
+| `fit`     | Result                                                  |
+| --------- | ------------------------------------------------------- |
+| `cover`   | Fills the box and crops the overflow                    |
+| `contain` | Fits inside the box and pads the rest with `background` |
+| `fill`    | Stretches to the exact box, ignoring aspect ratio       |
+| `inside`  | Fits inside the box; the output takes the scaled size   |
+
+`position` is `"center"`, `"top"`, `"bottom"`, `"left"`, `"right"`, or a corner such as `"top-left"`. A `FocalPoint` is `{ x, y }`, each from `0` to `1`.
+
+## `cropImage()`
+
+Crops to a pixel rectangle or an aspect ratio, optionally resizing the region in the same pass:
+
+```ts
+import { cropImage } from "pixelshift-core";
+
+await cropImage(file, { x: 40, y: 0, width: 800, height: 800 });
+await cropImage(file, { aspectRatio: "16:9", position: "top" });
+await cropImage(file, { aspectRatio: 1, resize: { width: 400 } });
+```
+
+Rectangles are clamped to the image and snapped to whole pixels. `aspectRatio` accepts `"16:9"`, `"1.91"`, or a number, and keeps the largest region of that ratio. `ASPECT_RATIOS` lists the presets the cropper element offers.
+
+## `transformImage()`
+
+The single decode, draw, and encode pass behind the geometric tools. Crop, resize, and format change happen in one `drawImage` call:
+
+```ts
+import { transformImage } from "pixelshift-core";
+
+await transformImage(file, {
+  crop: { aspectRatio: "4:5" },
+  resize: { width: 1080 },
+  format: "webp",
+  quality: 0.8,
+});
+```
+
+`planTransform()`, `planResize()`, and `calculateTargetSize()` compute the same plans without touching pixels.
+
+## Colors
+
+`extractColors()` decodes an image and returns its dominant palette, analyzed at a reduced size:
+
+```ts
+import { extractColors } from "pixelshift-core";
+
+const { dominant, palette, average } = await extractColors(file, { count: 5 });
+dominant?.hex; // "#1e90ff"
+```
+
+Each color is a `ColorInfo` with every notation a stylesheet needs; palette entries add `population`, their share of the image from `0` to `1`:
+
+```ts
+interface ColorInfo {
+  r: number;
+  g: number;
+  b: number;
+  h: number; // degrees
+  s: number; // percent
+  l: number; // percent
+  hex: string; // "#1e90ff"
+  rgb: string; // "rgb(30, 144, 255)"
+  hsl: string; // "hsl(210, 100%, 56%)"
+}
+```
+
+For pixels you already have, use the synchronous helpers:
+
+```ts
+import {
+  extractPaletteFromPixels,
+  getPixelColor,
+  readImageData,
+} from "pixelshift-core";
+
+const { imageData } = await readImageData(file, { maxSize: 1600 });
+const palette = extractPaletteFromPixels(imageData.data, { count: 6 });
+const pixel = getPixelColor(imageData, 120, 48);
+```
+
+| Helper                 | Purpose                                               |
+| ---------------------- | ----------------------------------------------------- |
+| `readImageData`        | Decode to RGBA pixels, optionally capped by `maxSize` |
+| `describeColor`        | Build a `ColorInfo` from RGB values                   |
+| `rgbToHex`, `hexToRgb` | Convert between RGB and hex                           |
+| `rgbToHsl`             | Convert RGB to whole-degree, whole-percent HSL        |
+| `averageColor`         | Opacity-weighted average of RGBA pixels               |
+| `colorDistance`        | Cheap perceptual distance between two colors          |
+| `relativeLuminance`    | WCAG 2 relative luminance                             |
+| `readableTextColor`    | Black or white, whichever reads better on a color     |
+
+## Base64
+
+`imageToBase64()` reads an image as a data URL without decoding it, so SVG, AVIF, and ICO work alongside the raster formats:
+
+```ts
+import { createEmbedSnippets, imageToBase64 } from "pixelshift-core";
+
+const result = await imageToBase64(file);
+result.dataUrl; // "data:image/png;base64,iVBORw0…"
+
+const snippets = createEmbedSnippets(result, { alt: "Logo" });
+snippets.html; // <img src="data:…" alt="Logo" />
+snippets.css; // background-image: url("data:…");
+```
+
+Snippets are available as `dataUrl`, `base64`, `html`, `css`, `markdown`, and `json`. `base64ToBlob()` turns a data URL, or bare Base64 plus a MIME type, back into a `Blob`; `bytesToBase64()` and `base64ToBytes()` work on raw bytes.
+
+## `resizeForSocial()`
+
+Fits an image to a platform's recommended size in one step, and compresses it to the platform's upload limit when the preset has one:
+
+```ts
+import { resizeForSocial } from "pixelshift-core";
+
+await resizeForSocial(file, "youtube-thumbnail");
+await resizeForSocial(file, "instagram-story", {
+  fit: "contain",
+  background: "#000000",
+});
+await resizeForSocial(file, { width: 1200, height: 675 });
+```
+
+| Option        | Type                     | Default            | Purpose                                         |
+| ------------- | ------------------------ | ------------------ | ----------------------------------------------- |
+| `fit`         | `"cover" \| "contain"`   | `"cover"`          | Crop to fill the frame, or letterbox            |
+| `position`    | `Position \| FocalPoint` | `"center"`         | Part of the image kept in frame                 |
+| `maxFileSize` | `number \| false`        | the preset's limit | Override the upload limit, or disable the check |
+
+The result adds `preset` and `withinLimit`. `SOCIAL_PRESETS` holds every preset, and its ids form the `SocialPresetId` type, so preset names autocomplete. `YOUTUBE_THUMBNAIL` is the 1280 × 720 preset with its 2 MB limit; `getSocialPreset()` and `socialPresetsFor()` look presets up, and `SOCIAL_PLATFORMS` lists the platforms.
+
+Platforms change their recommendations from time to time. When a preset falls behind, pass your own `{ width, height }`.
+
+## `removeBackground()`
+
+Removes plain or gently graded backgrounds by keying out the colors that dominate the image border, then softens the edge and subtracts background color that bled into it. Output is a transparent PNG, or WebP for WebP input:
+
+```ts
+import { removeBackground } from "pixelshift-core";
+
+const { file } = await removeBackground(photo, { tolerance: 20 });
+const onWhite = await removeBackground(photo, {
+  background: "#ffffff",
+  format: "jpeg",
+});
+```
+
+| Option       | Type                    | Default             | Purpose                                                          |
+| ------------ | ----------------------- | ------------------- | ---------------------------------------------------------------- |
+| `tolerance`  | `number`                | `15`                | How different a pixel may be from the background, `0`–`100`      |
+| `color`      | `string \| { r, g, b }` | detected from edges | Background color to key out                                      |
+| `contiguous` | `boolean`               | `true`              | Only remove background connected to the edges, like a magic wand |
+| `feather`    | `number`                | `1`                 | Soften the cut-out edge by this many pixels                      |
+| `segmenter`  | `Segmenter`             | unset               | Replace color keying with your own model                         |
+
+The result adds `backgroundColors`, the hex codes that were keyed out, and `removed`, the share of pixels removed.
+
+Color keying suits product shots, logos, signatures, and screenshots. Busy photographic backgrounds need a segmentation model; pass any model as a `Segmenter`:
+
+```ts
+type Segmenter = (
+  image: ImageData,
+  context: { signal?: AbortSignal },
+) => Promise<Uint8Array | Uint8ClampedArray | Float32Array | ImageData>;
+```
+
+It resolves with one foreground value per pixel: `0`–`255` in a `Uint8Array` or `Uint8ClampedArray`, `0`–`1` in a `Float32Array`, or an `ImageData` whose alpha channel is the mask. `createBackgroundMask()` exposes the built-in keying on raw pixels without a canvas.
+
+## `createZip()`
+
+Bundles files into an uncompressed ZIP archive. Images are already compressed, so they are stored as-is; duplicate names get a numeric suffix.
+
+```ts
+import { createZip } from "pixelshift-core";
+
+const zip = await createZip(results.map(({ file }) => file));
+```
+
 ## Cancellation
 
-Pass an `AbortSignal` to cancel before work begins or at the next conversion boundary:
+Pass an `AbortSignal` to cancel before work begins or at the next operation boundary:
 
 ```ts
 const controller = new AbortController();
@@ -90,16 +340,16 @@ Cancellation rejects with an `ImageConversionError` whose code is `ABORTED`.
 
 ## Errors
 
-`convertImage()` and `convertImages()` reject with `ImageConversionError` for known conversion failures.
+Every function rejects with `ImageConversionError` for known failures.
 
 | Code                 | Meaning                                         |
 | -------------------- | ----------------------------------------------- |
-| `ABORTED`            | The supplied signal cancelled conversion        |
+| `ABORTED`            | The supplied signal cancelled the operation     |
 | `DECODE_FAILED`      | The browser could not decode the input          |
 | `EMPTY_FILE`         | The input file contains no bytes                |
 | `FILE_TOO_LARGE`     | The input exceeds `maxBytes`                    |
 | `IMAGE_TOO_LARGE`    | Decoded dimensions exceed `maxPixels`           |
-| `INVALID_OPTION`     | Quality or target-size inputs are invalid       |
+| `INVALID_OPTION`     | An option is out of range or malformed          |
 | `UNSUPPORTED_INPUT`  | The input signature or MIME type is unsupported |
 | `UNSUPPORTED_OUTPUT` | The browser cannot encode the requested format  |
 
@@ -129,12 +379,18 @@ if (supportsOutputFormat("webp")) {
 
 ## Helpers
 
-| Export                 | Purpose                                             |
-| ---------------------- | --------------------------------------------------- |
-| `calculateTargetSize`  | Calculate aspect-ratio-preserving output dimensions |
-| `createOutputName`     | Replace a filename extension for the output format  |
-| `detectImageType`      | Detect a supported image MIME type                  |
-| `normalizeQuality`     | Apply the quality default and validate its range    |
-| `supportsOutputFormat` | Test the current browser's canvas encoder           |
-| `OUTPUT_FORMATS`       | List the supported output format names              |
-| `ImageConversionError` | Represent a known failure with a stable error code  |
+| Export                 | Purpose                                                   |
+| ---------------------- | --------------------------------------------------------- |
+| `calculateTargetSize`  | Calculate aspect-ratio-preserving output dimensions       |
+| `createOutputName`     | Replace a filename extension for the output format        |
+| `detectImageType`      | Detect a supported image MIME type from its bytes         |
+| `formatBytes`          | Format a byte count, e.g. `"1.5 KB"`                      |
+| `formatForMimeType`    | The output format that keeps an input's type              |
+| `normalizeQuality`     | Apply the quality default and validate its range          |
+| `parseAspectRatio`     | Parse `"16:9"`, `"1.5"`, or a number                      |
+| `supportsOutputFormat` | Test the current browser's canvas encoder                 |
+| `quantize`, `remap`    | Median-cut quantization and palette mapping on RGBA bytes |
+| `encodeIndexedPng`     | Write palette indices as an indexed PNG                   |
+| `OUTPUT_FORMATS`       | List the supported output format names                    |
+| `INPUT_ACCEPT`         | The `accept` attribute value for supported inputs         |
+| `ImageConversionError` | Represent a known failure with a stable error code        |
