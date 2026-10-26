@@ -1,6 +1,6 @@
 {
   "name": "pixelshift-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React components for Pixelshift's local browser image tools: compress, resize, convert, crop, colors, Base64, social sizes, and background removal.",
   "type": "module",
   "files": [
