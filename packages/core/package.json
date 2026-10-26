@@ -1,6 +1,6 @@
 {
   "name": "pixelshift-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Pixelshift's framework-free browser image toolkit: convert, compress, resize, crop, extract colors, encode Base64, fit social sizes, and remove backgrounds.",
   "type": "module",
   "files": [
