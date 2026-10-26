@@ -35,14 +35,9 @@ export function baseOptions(): BaseLayoutProps {
         icon: <BookOpenText aria-hidden="true" size={16} />,
       },
       {
-        text: "Demo",
-        url: "/#demo",
+        text: "playground",
+        url: "/playground",
         icon: <Play aria-hidden="true" size={16} />,
-      },
-      {
-        text: "Packages",
-        url: "/docs/frameworks",
-        icon: <Boxes aria-hidden="true" size={16} />,
       },
     ],
   };
